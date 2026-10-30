@@ -1,0 +1,30 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local data and built artifacts (versioned by snapshot id, never committed)
+/data/
+/artifacts/
+
+# Local overrides
+.env
+config/local.toml
+
+# IDE
+.idea/
+.vscode/
+.DS_Store

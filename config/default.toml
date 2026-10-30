@@ -1,0 +1,19 @@
+# CartIQ default configuration.
+#
+# Precedence (highest first): explicit constructor args > CARTIQ_* environment
+# variables > this file > code defaults. Nested keys map to env vars with a
+# double underscore, e.g. CARTIQ_API__PORT=9000.
+#
+# Point CARTIQ_CONFIG_FILE at another TOML file to replace this one.
+# Relative paths are resolved against the current working directory.
+
+environment = "dev"
+log_level = "INFO"
+
+[paths]
+data_dir = "data"
+artifacts_dir = "artifacts"
+
+[api]
+host = "127.0.0.1"
+port = 8000
