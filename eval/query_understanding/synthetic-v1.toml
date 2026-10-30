@@ -1,0 +1,443 @@
+# Expected query understanding, version qu-expectations-v1.
+#
+# Written by hand from what each query means, before brand detection or constraint
+# ordering exist, and never from parser, retrieval or evaluation output. Development
+# queries only: the held-out judgments are not used, and no held-out query word appears
+# in a do-not-correct list.
+#
+# Per case:
+# - quantity: kind none | amount (value + unit, optional pack_count) | pack (pack_count)
+#   | bare_number (count: an ambiguous count, N pieces or a pack of N).
+# - brand: the brand the query names, as spelled in that catalog; "" means no brand.
+#   Compared by brand key (tokens joined, case-insensitive).
+# - corrections: every spelling correction expected (typed -> intended word).
+#
+# Scoring reports two measurements separately, so a correct correction can never hide a
+# harmful extra one:
+# 1. Expected correction coverage: for each expected correction, is the intended word
+#    among the terms the parser gives that typed token (the correction itself or its
+#    lexicon/plural expansions)?
+# 2. Unexpected corrections: every correction candidate the parser produces that is not
+#    an expected one (other typed tokens, or extra/different targets for an expected
+#    token), counted and listed explicitly, including in cases whose expected
+#    correction is covered.
+# Per suite:
+# - do_not_correct: valid words that must not receive any spelling correction.
+# - never_produce: terms that must not appear in any concept for any case or for any
+#   development query text run against that catalog.
+
+schema_version = 1
+version = "qu-expectations-v1"
+labeler = "manual-v1"
+
+[[suite]]
+name = "synthetic-dev"
+catalog = "synthetic-v1"
+catalog_sha256 = "d22b5de53fd9abca6164dafebfdff8bb4270d73442da1f5b8030d170a664dc38"
+# All 63 development queries, in development-file order.
+do_not_correct = ["amul", "chicken", "colgate", "dahi", "dettol", "fortune", "garam", "iphone", "kela", "laptop", "maggi", "masala", "nescafe", "onion", "pizza", "rajma", "soap", "surf", "vodka"]
+never_produce = []
+
+[[suite.case]]
+text = "milk"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "atta"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "paneer"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "basmati rice"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "eggs"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "bread"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "toothpaste"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "onion"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "chips"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "detergent powder"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "amull milk"
+quantity = { kind = "none" }
+brand = "Amul"
+corrections = [{ typed = "amull", intended = "amul" }]
+
+[[suite.case]]
+text = "panner"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "panner", intended = "paneer" }]
+
+[[suite.case]]
+text = "tomatto"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "tomatto", intended = "tomato" }]
+
+[[suite.case]]
+text = "biscut"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "biscut", intended = "biscuit" }]
+
+[[suite.case]]
+text = "detergant"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "detergant", intended = "detergent" }]
+
+[[suite.case]]
+text = "colgat toothpaste"
+quantity = { kind = "none" }
+brand = "Colgate"
+corrections = [{ typed = "colgat", intended = "colgate" }]
+
+[[suite.case]]
+text = "magii noodles"
+quantity = { kind = "none" }
+brand = "Maggi"
+corrections = [{ typed = "magii", intended = "maggi" }]
+
+[[suite.case]]
+text = "corriander"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "corriander", intended = "coriander" }]
+
+[[suite.case]]
+text = "bannana"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "bannana", intended = "banana" }]
+
+[[suite.case]]
+text = "sunflowr oil"
+quantity = { kind = "none" }
+brand = ""
+corrections = [{ typed = "sunflowr", intended = "sunflower" }]
+
+[[suite.case]]
+text = "doodh"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "dahi"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "aloo"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "pyaz"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "cheeni"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "namak"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "chawal"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "anda"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "haldi"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "sarson ka tel"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "adrak"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "chai patti"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "kela"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "sabun"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "nimbu"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "thanda"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "amul butter"
+quantity = { kind = "none" }
+brand = "Amul"
+corrections = []
+
+[[suite.case]]
+text = "tata salt"
+quantity = { kind = "none" }
+brand = "Tata"
+corrections = []
+
+[[suite.case]]
+text = "fortune oil"
+quantity = { kind = "none" }
+brand = "Fortune"
+corrections = []
+
+[[suite.case]]
+text = "surf excel"
+quantity = { kind = "none" }
+brand = "Surf Excel"
+corrections = []
+
+[[suite.case]]
+text = "dettol soap"
+quantity = { kind = "none" }
+brand = "Dettol"
+corrections = []
+
+[[suite.case]]
+text = "nescafe"
+quantity = { kind = "none" }
+brand = "Nescafe"
+corrections = []
+
+[[suite.case]]
+text = "haldiram bhujia"
+quantity = { kind = "none" }
+brand = "Haldiram's"
+corrections = []
+
+[[suite.case]]
+text = "aashirvaad atta"
+quantity = { kind = "none" }
+brand = "Aashirvaad"
+corrections = []
+
+[[suite.case]]
+text = "mother dairy paneer"
+quantity = { kind = "none" }
+brand = "Mother Dairy"
+corrections = []
+
+[[suite.case]]
+text = "coca cola"
+quantity = { kind = "none" }
+brand = "Coca-Cola"
+corrections = []
+
+[[suite.case]]
+text = "amul milk 1 litre"
+quantity = { kind = "amount", value = 1, unit = "l" }
+brand = "Amul"
+corrections = []
+
+[[suite.case]]
+text = "atta 10kg"
+quantity = { kind = "amount", value = 10, unit = "kg" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "aashirvaad atta 5 kg"
+quantity = { kind = "amount", value = 5, unit = "kg" }
+brand = "Aashirvaad"
+corrections = []
+
+[[suite.case]]
+text = "onion 2kg"
+quantity = { kind = "amount", value = 2, unit = "kg" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "sugar 5 kg"
+quantity = { kind = "amount", value = 5, unit = "kg" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "maggi 12 pack"
+quantity = { kind = "pack", pack_count = 12 }
+brand = "Maggi"
+corrections = []
+
+[[suite.case]]
+text = "eggs 12"
+quantity = { kind = "bare_number", count = 12 }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "fortune sunflower oil 5 litre"
+quantity = { kind = "amount", value = 5, unit = "l" }
+brand = "Fortune"
+corrections = []
+
+[[suite.case]]
+text = "coke 6 x 300 ml"
+quantity = { kind = "amount", value = 300, unit = "ml", pack_count = 6 }
+brand = "Coca-Cola"
+corrections = []
+
+[[suite.case]]
+text = "toor dal 1kg"
+quantity = { kind = "amount", value = 1, unit = "kg" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "paneer 500g"
+quantity = { kind = "amount", value = 500, unit = "g" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "oil"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "masala"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "maggi"
+quantity = { kind = "none" }
+brand = "Maggi"
+corrections = []
+
+[[suite.case]]
+text = "dal"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "chicken"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite.case]]
+text = "soap"
+quantity = { kind = "none" }
+brand = ""
+corrections = []
+
+[[suite]]
+name = "bigbasket-dev"
+catalog = "bigbasket_products.csv"
+catalog_sha256 = "7bb61a248baf83e93fb1d44641d00d4bab7436ccc5767d6dfec2b35893459b2f"
+# Development queries whose behaviour on the real catalog was inspected in 4a.
+do_not_correct = ["coke", "cola", "maggi"]
+never_produce = ["come"]
+
+[[suite.case]]
+text = "coke 6 x 300 ml"
+quantity = { kind = "amount", value = 300, unit = "ml", pack_count = 6 }
+brand = "Coca-Cola"
+corrections = []
+
+[[suite.case]]
+text = "coca cola"
+quantity = { kind = "none" }
+brand = "Coca-Cola"
+corrections = []
+
+[[suite.case]]
+text = "magii noodles"
+quantity = { kind = "none" }
+brand = "MAGGI"
+corrections = [{ typed = "magii", intended = "maggi" }]
