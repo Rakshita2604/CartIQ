@@ -4,8 +4,9 @@ Grocery quick-commerce search and ranking engine: query understanding for short,
 and Hinglish queries, hybrid BM25 + dense retrieval, store-aware inventory filtering,
 personalized ranking, substitutions, and offline evaluation (NDCG@10, MRR, zero-result rate).
 
-Status: **Phase 3** — BM25F lexical retrieval, measured with the Phase 2 evaluation harness
-on top of Phase 1's catalog ingestion, seeded simulation, storage layer and snapshots.
+Status: **Phase 4a** — query understanding (quantity extraction, Hinglish lexicon, spelling
+correction, plural variants) over BM25F retrieval, measured stage by stage with the Phase 2
+evaluation harness on a development set and an independent held-out set.
 
 ## Requirements
 
@@ -43,9 +44,12 @@ are gitignored.
 ```bash
 uv run cartiq build-snapshot                         # prints snap-<id>
 uv run cartiq evaluate snap-<id>                     # token-overlap baseline
-uv run cartiq evaluate snap-<id> --ranker bm25       # BM25F retrieval
+uv run cartiq evaluate snap-<id> --ranker bm25       # BM25F retrieval (stage S0)
+uv run cartiq evaluate snap-<id> --ranker qu --stage s4   # + query understanding (s1..s4)
+uv run cartiq evaluate snap-<id> --judgments eval/judgments/synthetic-v1-heldout.toml ...
 uv run cartiq compare-reports BEFORE.json AFTER.json # overall, segment and per-query deltas
 uv run cartiq bench-bm25 snap-<id>                   # index build time, query p50/p95
+uv run cartiq bench-query snap-<id> --stage s4       # parser build/memory, parse latency
 ```
 
 Judgments are hand-labeled TOML files under `eval/judgments/`, bound to one catalog version
@@ -83,7 +87,8 @@ src/cartiq/
   ingestion/       source adapters (synthetic, BigBasket) and catalog normalization
   simulation/      seeded stores, inventory, users and orders
   storage/         repository interfaces; in-memory and SQLite implementations
-  retrieval/       BM25F index over product fields (in memory)
+  query/           query understanding; frozen lexicon and brand aliases in query/lexicon/
+  retrieval/       BM25F index over product fields (in memory), concept-aware scoring
   evaluation/      judgments, metrics, runner, pipelines (baseline, BM25), report comparison
   snapshots.py     build and verify content-addressed snapshots
   api/             FastAPI app factory, routes, response schemas
@@ -94,4 +99,4 @@ src/cartiq/
 tests/unit, tests/contract (run against every storage backend), tests/integration
 ```
 
-Further packages (query, inventory, ranking, personalization, substitutions) are added in the phase that introduces them.
+Further packages (inventory, ranking, personalization, substitutions) are added in the phase that introduces them.

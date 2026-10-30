@@ -68,3 +68,41 @@ class TestBM25Pipeline:
         assert staged.available == staged.final
         assert not pipeline.search("amul milk", "S2", limit=10).final
         assert not pipeline.search("amul milk", "unknown-store", limit=10).final
+
+
+class TestUnderstandingPipeline:
+    def test_all_stages_off_reproduces_plain_bm25(
+        self, synthetic_products: tuple[Product, ...]
+    ) -> None:
+        from pathlib import Path
+
+        from cartiq.config import QuerySettings
+        from cartiq.evaluation import load_judgments
+        from cartiq.evaluation.pipelines import UnderstandingPipeline
+        from cartiq.query import Stages
+
+        bm25 = BM25Pipeline(synthetic_products, IN_STOCK, BM25Settings())
+        off = UnderstandingPipeline(
+            synthetic_products, IN_STOCK, BM25Settings(), QuerySettings(), "off", Stages()
+        )
+        queries = [q.text for q in load_judgments(Path("eval/judgments/synthetic-v1.toml")).queries]
+
+        for query in queries:
+            assert off.retrieve(query, 100) == bm25.retrieve(query, 100), query
+            assert off.search(query, "S1", 10) == bm25.search(query, "S1", 10), query
+
+    def test_name_identifies_stage_and_configuration(
+        self, synthetic_products: tuple[Product, ...]
+    ) -> None:
+        from cartiq.config import QuerySettings
+        from cartiq.evaluation.pipelines import UnderstandingPipeline
+        from cartiq.query import STAGES
+
+        def name(stage: str, settings: QuerySettings) -> str:
+            return UnderstandingPipeline(
+                synthetic_products, IN_STOCK, BM25Settings(), settings, stage, STAGES[stage]
+            ).name
+
+        assert name("s2", QuerySettings()).startswith("qu-s2-")
+        assert name("s2", QuerySettings()) != name("s3", QuerySettings())
+        assert name("s3", QuerySettings()) != name("s3", QuerySettings(dominance_ratio=10))

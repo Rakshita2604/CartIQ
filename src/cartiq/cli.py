@@ -4,7 +4,10 @@ import contextlib
 import logging
 import statistics
 import time
+import tracemalloc
+from collections.abc import Callable
 from enum import StrEnum
+from functools import partial
 from pathlib import Path
 from typing import Annotated
 
@@ -23,11 +26,13 @@ from cartiq.evaluation import (
     load_judgments,
 )
 from cartiq.evaluation.compare import IncomparableReportsError, format_comparison
-from cartiq.evaluation.pipelines import BM25Pipeline, TokenOverlapPipeline
+from cartiq.evaluation.pipelines import BM25Pipeline, TokenOverlapPipeline, UnderstandingPipeline
 from cartiq.evaluation.runner import EvalReport
 from cartiq.ingestion.bigbasket import read_bigbasket_csv
 from cartiq.ingestion.raw import RawCatalogRow
 from cartiq.ingestion.synthetic import SYNTHETIC_CATALOG_VERSION, synthetic_catalog_rows
+from cartiq.query import STAGES, QueryParser
+from cartiq.query.lexicon import load_lexicon
 from cartiq.retrieval import BM25FIndex, bm25_config_id
 from cartiq.snapshots import (
     DB_FILENAME,
@@ -54,6 +59,14 @@ class CatalogSource(StrEnum):
 class RankerChoice(StrEnum):
     BASELINE = "baseline"
     BM25 = "bm25"
+    QU = "qu"  # BM25F over query understanding; pick the stage with --stage
+
+
+class StageChoice(StrEnum):
+    S1 = "s1"  # + quantity extraction
+    S2 = "s2"  # + Hinglish lexicon
+    S3 = "s3"  # + spelling correction
+    S4 = "s4"  # + plural variants
 
 
 @app.command()
@@ -150,6 +163,9 @@ def evaluate_command(
         Path | None,
         typer.Option(help="Report JSON path (defaults to artifacts/eval/<snapshot>/...)."),
     ] = None,
+    stage: Annotated[
+        StageChoice, typer.Option(help="Query-understanding stage for --ranker qu.")
+    ] = StageChoice.S4,
 ) -> None:
     """Score a pipeline against hand-labeled judgments (see eval/README.md)."""
     settings = Settings()
@@ -166,9 +182,18 @@ def evaluate_command(
         typer.echo(f"FAILED: {error}", err=True)
         raise typer.Exit(1) from error
 
-    pipeline: TokenOverlapPipeline | BM25Pipeline
+    pipeline: TokenOverlapPipeline | BM25Pipeline | UnderstandingPipeline
     if ranker is RankerChoice.BM25:
         pipeline = BM25Pipeline(products, in_stock, settings.retrieval.bm25)
+    elif ranker is RankerChoice.QU:
+        pipeline = UnderstandingPipeline(
+            products,
+            in_stock,
+            settings.retrieval.bm25,
+            settings.query,
+            stage.value,
+            STAGES[stage.value],
+        )
     else:
         pipeline = TokenOverlapPipeline(products, in_stock)
     report = evaluate(
@@ -266,3 +291,68 @@ def _load_snapshot(
             for store in repos.stores.list_all()
         }
     return load_manifest(snapshot_dir), products, in_stock
+
+
+@app.command("bench-query")
+def bench_query_command(
+    snapshot_id: str,
+    stage: Annotated[StageChoice, typer.Option(help="Query-understanding stage.")] = (
+        StageChoice.S4
+    ),
+    repeat: Annotated[int, typer.Option(min=1, help="Timed passes over the workload.")] = 3,
+) -> None:
+    """Time query understanding on a snapshot and count zero-result queries (no labels).
+
+    The workload is the development judgment file's query texts, never the held-out ones.
+    A benchmark on this machine, not a guarantee.
+    """
+    settings = Settings()
+    _, products, in_stock = _load_snapshot(settings, snapshot_id)
+    queries = [query.text for query in load_judgments(settings.evaluation.judgments_file).queries]
+    depth, limit = max(settings.evaluation.recall_at), settings.evaluation.k
+
+    index = BM25FIndex.build(products, settings.retrieval.bm25)
+    frequencies = {term: index.document_frequency(term) for term in index.vocabulary}
+    lexicon = load_lexicon(settings.query.lexicon)
+    started = time.perf_counter()
+    parser = QueryParser(frequencies, lexicon, settings.query, STAGES[stage.value])
+    build_ms = (time.perf_counter() - started) * 1000
+    tracemalloc.start()
+    QueryParser(frequencies, lexicon, settings.query, STAGES[stage.value])
+    peak_mb = tracemalloc.get_traced_memory()[1] / 2**20
+    tracemalloc.stop()
+
+    def timed(action: Callable[[], object]) -> float:
+        started = time.perf_counter()
+        action()
+        return (time.perf_counter() - started) * 1000
+
+    parse_ms: list[float] = []
+    catalog_ms: list[float] = []
+    store_ms: list[float] = []
+    for _ in range(repeat):
+        for query in queries:
+            parse_ms.append(timed(partial(parser.parse, query)))
+            concepts = parser.parse(query).concepts
+            catalog_ms.append(timed(partial(index.search_concepts, concepts, depth)))
+            store_ms += [
+                timed(partial(index.search_concepts, concepts, limit, stocked))
+                for stocked in in_stock.values()
+            ]
+    plain_zero = sum(not index.search(query, depth) for query in queries)
+    stage_zero = sum(not index.search_concepts(parser.parse(q).concepts, depth) for q in queries)
+
+    typer.echo(f"snapshot {snapshot_id}: {len(index)} products, stage {stage.value}")
+    typer.echo(f"parser build (incl. spelling index): {build_ms:.0f} ms, peak {peak_mb:.1f} MiB")
+    for label, samples in (
+        ("parse", parse_ms),
+        ("parse + catalog search, search part", catalog_ms),
+        (f"store search (limit {limit})", store_ms),
+    ):
+        p50 = statistics.median(samples)
+        p95 = statistics.quantiles(samples, n=100, method="inclusive")[94]
+        typer.echo(f"{label}: n={len(samples)} p50={p50:.3f} ms p95={p95:.3f} ms")
+    typer.echo(
+        f"catalog zero-result over {len(queries)} dev query texts: plain BM25F {plain_zero}, "
+        f"{stage.value} {stage_zero}"
+    )

@@ -99,6 +99,31 @@ class RetrievalSettings(BaseModel):
     bm25: BM25Settings = BM25Settings()
 
 
+class QuerySettings(BaseModel):
+    """Query understanding. Values are fixed a priori (Phase 4 design), never tuned on
+    evaluation judgments."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    lexicon: str = "hinglish-v1"
+    brand_aliases: str = "brand-aliases-v1"
+    # Spelling: tokens shorter than one_edit_min_length are never corrected; one edit is
+    # allowed from that length, two edits from two_edit_min_length.
+    one_edit_min_length: int = Field(default=4, ge=1)
+    two_edit_min_length: int = Field(default=8, ge=1)
+    # A known token gets a one-edit neighbour added when the neighbour is this dominant.
+    dominance_ratio: float = Field(default=20.0, gt=1)
+    dominance_min_df: int = Field(default=5, ge=1)
+    # A trailing bare integer in [2, bare_count_max] is read as an (ambiguous) count.
+    bare_count_max: int = Field(default=50, ge=2)
+
+    @model_validator(mode="after")
+    def _check_lengths(self) -> Self:
+        if self.two_edit_min_length <= self.one_edit_min_length:
+            raise ValueError("two_edit_min_length must exceed one_edit_min_length")
+        return self
+
+
 class EvaluationSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -130,6 +155,7 @@ class Settings(BaseSettings):
     ingestion: IngestionSettings = IngestionSettings()
     simulation: SimulationSettings = SimulationSettings()
     retrieval: RetrievalSettings = RetrievalSettings()
+    query: QuerySettings = QuerySettings()
     evaluation: EvaluationSettings = EvaluationSettings()
 
     @classmethod

@@ -2,12 +2,18 @@
 stock) and per-store staged results. Neither has fallbacks or substitutions yet, so final
 results are the in-stock matches."""
 
+import hashlib
+import json
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict
 
-from cartiq.config import BM25Settings
-from cartiq.domain import Product
+from cartiq.config import BM25Settings, QuerySettings
+from cartiq.domain import ParsedQuery, Product
 from cartiq.evaluation.runner import StagedResults
 from cartiq.parsing.text import tokenize
+from cartiq.query import QueryParser, Stages
+from cartiq.query.lexicon import load_lexicon
+from cartiq.query.parser import PARSER_VERSION
 from cartiq.retrieval import BM25FIndex, bm25_config_id
 
 
@@ -71,4 +77,53 @@ class BM25Pipeline:
     def search(self, query: str, store_id: str, limit: int) -> StagedResults:
         allowed = self._in_stock.get(store_id, frozenset())
         available = [c.product_id for c in self._index.search(query, limit, allowed=allowed)]
+        return StagedResults(available=available, final=available)
+
+
+class UnderstandingPipeline:
+    """BM25F over the concepts produced by query understanding (Phase 4a stages)."""
+
+    def __init__(
+        self,
+        products: Iterable[Product],
+        in_stock: Mapping[str, frozenset[str]],
+        bm25: BM25Settings,
+        query: QuerySettings,
+        stage: str,
+        stages: Stages,
+    ) -> None:
+        self._index = BM25FIndex.build(products, bm25)
+        lexicon = load_lexicon(query.lexicon)
+        frequencies = {
+            term: self._index.document_frequency(term) for term in self._index.vocabulary
+        }
+        self._parser = QueryParser(frequencies, lexicon, query, stages)
+        self._in_stock = in_stock
+        self._parsed: dict[str, ParsedQuery] = {}
+        identity = json.dumps(
+            {
+                "bm25": bm25_config_id(bm25),
+                "parser": PARSER_VERSION,
+                "lexicon": lexicon.sha256,
+                "query": query.model_dump(mode="json"),
+                "stages": asdict(stages),
+            },
+            sort_keys=True,
+        )
+        self.name = f"qu-{stage}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}"
+
+    def parse(self, query: str) -> ParsedQuery:
+        if query not in self._parsed:
+            self._parsed[query] = self._parser.parse(query)
+        return self._parsed[query]
+
+    def retrieve(self, query: str, depth: int) -> Sequence[str]:
+        concepts = self.parse(query).concepts
+        return [c.product_id for c in self._index.search_concepts(concepts, depth)]
+
+    def search(self, query: str, store_id: str, limit: int) -> StagedResults:
+        allowed = self._in_stock.get(store_id, frozenset())
+        concepts = self.parse(query).concepts
+        found = self._index.search_concepts(concepts, limit, allowed=allowed)
+        available = [candidate.product_id for candidate in found]
         return StagedResults(available=available, final=available)

@@ -51,6 +51,16 @@ sub_category = { weight = 0.5, b = 0.0 }   # middle category level(s)
 description = { weight = 0.3, b = 0.75 }
 category = { weight = 0.0, b = 0.0 }       # top level, e.g. "Foodgrains, Oil & Masala"
 
+[query]
+# Query understanding (Phase 4). Fixed before evaluation; never tuned on judgments.
+lexicon = "hinglish-v1"              # frozen: src/cartiq/query/lexicon/hinglish-v1.toml
+brand_aliases = "brand-aliases-v1"   # frozen: src/cartiq/query/lexicon/brand-aliases-v1.toml
+one_edit_min_length = 4              # shorter tokens are never spelling-corrected
+two_edit_min_length = 8              # two edits allowed from this length
+dominance_ratio = 20.0               # known-but-rare token: add a neighbour with df >= 20x ...
+dominance_min_df = 5                 # ... and df >= 5
+bare_count_max = 50                  # trailing bare integer 2..50 = ambiguous count ("eggs 12")
+
 [evaluation]
 judgments_file = "eval/judgments/synthetic-v1.toml"
 k = 10                       # cut-off for NDCG, MRR and Judged

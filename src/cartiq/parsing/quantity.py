@@ -27,6 +27,9 @@ _UNIT_ALIASES: dict[str, tuple[Unit, Fraction]] = {
     **dict.fromkeys(["pc", "pcs", "piece", "pieces", "nos"], (Unit.PCS, Fraction(1))),
 }
 
+# Every unit spelling the parser understands; query parsing uses it to spot unit words.
+UNIT_WORDS = frozenset(_UNIT_ALIASES)
+
 _UNIT = "|".join(sorted(map(re.escape, _UNIT_ALIASES), key=len, reverse=True))
 _NUMBER = r"\d+/\d+|\d+(?:\.\d+)?"
 # A number must not continue a word ("B12") or another number.

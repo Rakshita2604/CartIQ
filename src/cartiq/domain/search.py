@@ -36,24 +36,119 @@ class SubstituteReason(StrEnum):
     CO_PURCHASE = "co_purchase"
 
 
+class TermSource(StrEnum):
+    """Where a concept term came from. Only QUERY terms were typed by the shopper."""
+
+    QUERY = "query"
+    LEXICON = "lexicon"
+    SPELLING = "spelling"
+    INFLECTION = "inflection"
+
+
+@dataclass(frozen=True, slots=True)
+class ConceptTerm:
+    term: str
+    source: TermSource
+    weight: float = 1.0  # share of the concept's term frequency this term carries
+
+    def __post_init__(self) -> None:
+        require_id("ConceptTerm.term", self.term)
+        if not 0 < self.weight <= 1:
+            raise ValueError("ConceptTerm.weight must be in (0, 1]")
+
+
+@dataclass(frozen=True, slots=True)
+class QueryConcept:
+    """One unit of meaning in a query: alternative terms that all express it.
+
+    Retrieval sums the weighted term frequencies of a concept's terms and saturates once,
+    so synonyms of one concept are never counted as independent matches.
+    """
+
+    text: str  # what the shopper typed for this concept, e.g. "sarson ka tel"
+    terms: tuple[ConceptTerm, ...]
+
+    def __post_init__(self) -> None:
+        if not self.terms:
+            raise ValueError("QueryConcept needs at least one term")
+        if len({term.term for term in self.terms}) != len(self.terms):
+            raise ValueError("QueryConcept terms must be unique")
+
+    @classmethod
+    def single(cls, term: str) -> "QueryConcept":
+        return cls(term, (ConceptTerm(term, TermSource.QUERY),))
+
+
+class CorrectionReason(StrEnum):
+    UNKNOWN = "unknown"  # the typed token is not in the vocabulary
+    DOMINANT = "dominant"  # known but rare; a near neighbour is far more frequent
+
+
+@dataclass(frozen=True, slots=True)
+class Correction:
+    original: str
+    corrected: str
+    distance: int
+    reason: CorrectionReason
+
+
+class QuantityKind(StrEnum):
+    AMOUNT = "amount"  # a size, optionally with a pack count: "500 ml", "6 x 300 ml"
+    PACK = "pack"  # a pack count without a size: "12 pack", "pack of 6"
+    BARE_NUMBER = "bare_number"  # a trailing integer: "eggs 12"; a count, ambiguous
+
+
+@dataclass(frozen=True, slots=True)
+class QuantityMention:
+    """A quantity found in the query and the character spans of the query it came from.
+
+    A mention can have several spans ("300 ml ... 6 pack"); they are sorted and disjoint.
+    """
+
+    kind: QuantityKind
+    spans: tuple[tuple[int, int], ...]
+    text: str
+    quantity: Quantity | None = None
+    pack_count: int | None = None
+    count: int | None = None  # BARE_NUMBER only: N pieces or a pack of N, undecided
+
+    def __post_init__(self) -> None:
+        if not self.spans or any(not 0 <= start < end for start, end in self.spans):
+            raise ValueError("QuantityMention needs non-empty spans")
+        if any(a[1] > b[0] for a, b in zip(self.spans, self.spans[1:], strict=False)):
+            raise ValueError("QuantityMention spans must be sorted and disjoint")
+        expected = {
+            QuantityKind.AMOUNT: self.quantity is not None and self.count is None,
+            QuantityKind.PACK: self.quantity is None
+            and self.pack_count is not None
+            and self.count is None,
+            QuantityKind.BARE_NUMBER: self.quantity is None
+            and self.pack_count is None
+            and self.count is not None,
+        }
+        if not expected[self.kind]:
+            raise ValueError(f"QuantityMention fields do not match kind {self.kind}")
+
+
 @dataclass(frozen=True, slots=True)
 class ParsedQuery:
     raw: str
-    normalized: str
+    normalized: str  # the text used for retrieval (quantity spans removed)
     tokens: tuple[str, ...]
-    corrected_tokens: tuple[str, ...] = ()
-    expansions: tuple[str, ...] = ()
+    concepts: tuple[QueryConcept, ...] = ()
+    corrections: tuple[Correction, ...] = ()
+    quantity_mention: QuantityMention | None = None
     brand: str | None = None
     category: str | None = None
     quantity: Quantity | None = None
-    product_terms: tuple[str, ...] = ()
+    pack_count: int | None = None
 
     @property
     def constraints(self) -> frozenset[Constraint]:
         present = set()
         if self.brand is not None:
             present.add(Constraint.BRAND)
-        if self.quantity is not None:
+        if self.quantity is not None or self.pack_count is not None:
             present.add(Constraint.QUANTITY)
         if self.category is not None:
             present.add(Constraint.CATEGORY)
