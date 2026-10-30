@@ -1,0 +1,9 @@
+index,product,category,sub_category,brand,sale_price,market_price,type,rating,description
+1,Taaza Toned Fresh Milk 1 L,Bakery Cakes & Dairy,Dairy,Amul ,54,56,Milk,4.2,Toned milk.
+2,  Masala   Noodles 12 x 70 g ,Snacks & Branded Foods,"Noodle, Pasta, Vermicelli",Maggi,168,168,Instant Noodles,4.5,"Instant noodles, masala flavour."
+3,Fresh Onion,Fruits & Vegetables,Fresh Vegetables,,"1,040.50",,Onion,,
+4,,Beauty & Hygiene,Hair Care,Dove,250,300,Shampoo,4.0,No name.
+5,Free Sample,Beauty & Hygiene,Hair Care,Dove,0,0,Shampoo,,Zero price.
+6,Taaza Toned Fresh Milk 1 L,Bakery Cakes & Dairy,Dairy,amul,54,56,Milk,4.2,Duplicate of row 1.
+7,Organic Jaggery 500 g,Gourmet & World Food,Cooking & Baking Needs,Organic Tattva,95,90,Jaggery,3.9,MRP below sale price.
+8,Brass Pooja Lamp No.1,Kitchen Garden & Pets,Pooja Needs,,abc,200,Lamps,,Bad price.

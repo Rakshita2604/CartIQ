@@ -17,3 +17,24 @@ artifacts_dir = "artifacts"
 [api]
 host = "127.0.0.1"
 port = 8000
+
+[ingestion]
+# Kaggle "BigBasket Entire Product List" CSV (CC BY-NC-SA 4.0). Download manually; not committed.
+bigbasket_csv = "data/raw/bigbasket_products.csv"
+
+[simulation]
+seed = 42
+n_stores = 5
+cities = ["Bengaluru", "Mumbai", "Delhi"]
+assortment_ratio = 0.7       # share of the catalog each store carries
+out_of_stock_rate = 0.08     # share of carried products with zero stock
+max_stock_units = 50
+n_users = 500
+min_orders_per_user = 1
+max_orders_per_user = 12
+max_lines_per_order = 8
+brand_loyalty = 0.75         # probability a user buys their preferred brand in a category
+popularity_exponent = 1.0    # Zipf exponent for global product popularity
+history_start = 2026-01-01
+history_days = 90
+inventory_as_of = 2026-04-01T00:00:00Z
