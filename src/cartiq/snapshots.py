@@ -22,6 +22,7 @@ from typing import Any, Literal
 from pydantic import AwareDatetime, BaseModel, ConfigDict
 
 from cartiq import __version__
+from cartiq.catalog_fingerprint import catalog_fingerprint
 from cartiq.clock import Clock
 from cartiq.config import SimulationSettings
 from cartiq.ingestion.normalize import normalize_catalog
@@ -60,6 +61,8 @@ class SnapshotManifest(BaseModel):
     cartiq_version: str
     python_version: str
     source: SourceInfo
+    # Relevance fingerprint of the catalog (see catalog_fingerprint); None in older snapshots.
+    catalog_sha256: str | None = None
     simulation: SimulationSettings
     ingestion_report: dict[str, object]
     counts: dict[str, int]
@@ -121,6 +124,7 @@ def build_snapshot(
             cartiq_version=__version__,
             python_version=platform.python_version(),
             source=source,
+            catalog_sha256=catalog_fingerprint(catalog.products),
             simulation=simulation,
             ingestion_report=catalog.report.to_dict(),
             counts=counts,
@@ -137,16 +141,24 @@ def load_manifest(snapshot_dir: Path) -> SnapshotManifest:
 
 
 def verify_snapshot(snapshot_dir: Path) -> SnapshotManifest:
-    """Recompute the content hash read-only and compare it with the manifest."""
+    """Recompute the content hash (and catalog fingerprint, if recorded) read-only and compare
+    them with the manifest."""
     manifest = load_manifest(snapshot_dir)
     conn = connect(snapshot_dir / DB_FILENAME, read_only=True)
     try:
-        actual = content_hash(sqlite_repositories(conn), schema_version(conn))
+        repos = sqlite_repositories(conn)
+        actual = content_hash(repos, schema_version(conn))
+        fingerprint = catalog_fingerprint(repos.catalog.list_all())
     finally:
         conn.close()
     if actual != manifest.content_sha256:
         raise SnapshotVerificationError(
             f"{manifest.snapshot_id}: content hash {actual} != manifest {manifest.content_sha256}"
+        )
+    if manifest.catalog_sha256 is not None and fingerprint != manifest.catalog_sha256:
+        raise SnapshotVerificationError(
+            f"{manifest.snapshot_id}: catalog fingerprint {fingerprint} != manifest "
+            f"{manifest.catalog_sha256}"
         )
     return manifest
 

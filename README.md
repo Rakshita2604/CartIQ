@@ -4,7 +4,8 @@ Grocery quick-commerce search and ranking engine: query understanding for short,
 and Hinglish queries, hybrid BM25 + dense retrieval, store-aware inventory filtering,
 personalized ranking, substitutions, and offline evaluation (NDCG@10, MRR, zero-result rate).
 
-Status: **Phase 1** — catalog ingestion, seeded simulation, storage layer, versioned snapshots.
+Status: **Phase 3** — BM25F lexical retrieval, measured with the Phase 2 evaluation harness
+on top of Phase 1's catalog ingestion, seeded simulation, storage layer and snapshots.
 
 ## Requirements
 
@@ -37,6 +38,34 @@ redistributed here: download `BigBasket Products.csv` to `data/raw/bigbasket_pro
 Snapshots built from it are adaptations under the same license; `data/` and `artifacts/`
 are gitignored.
 
+## Evaluation
+
+```bash
+uv run cartiq build-snapshot                         # prints snap-<id>
+uv run cartiq evaluate snap-<id>                     # token-overlap baseline
+uv run cartiq evaluate snap-<id> --ranker bm25       # BM25F retrieval
+uv run cartiq compare-reports BEFORE.json AFTER.json # overall, segment and per-query deltas
+uv run cartiq bench-bm25 snap-<id>                   # index build time, query p50/p95
+```
+
+Judgments are hand-labeled TOML files under `eval/judgments/`, bound to one catalog version
+and fingerprint; the grading rubric and metric definitions are in
+[`eval/README.md`](eval/README.md). Reports are written to
+`artifacts/eval/<snapshot>/<pipeline>-<judgments hash>.json` and contain no timestamps, so
+the same inputs always give the same report. The BM25 pipeline name includes a hash of its
+configuration and tokenizer. `compare-reports` refuses reports made under different
+conditions (snapshot, catalog, judgments, cut-offs or stores). The token-overlap report is
+pinned byte for byte by `tests/integration/test_baseline_regression.py`.
+
+BM25F (formula in `src/cartiq/retrieval/bm25f.py`) weights product name, product type,
+brand, sub-category and description separately; field weights live in `[retrieval.bm25]`
+and were fixed before evaluation, not tuned on the judgments. The classic `(k1 + 1)` factor
+is omitted: absolute scores are scaled down by that constant, rankings are unchanged.
+
+Future optimizations, recorded rather than done: cache the per-store eligibility mask used
+by store-filtered BM25F search (it dominates that path's ~1 ms latency on BigBasket), and
+persist the index to disk if build time (~1.2 s for 27k products) starts to matter.
+
 ## Configuration
 
 Settings load from `config/default.toml`, then `CARTIQ_*` environment variables override them
@@ -47,12 +76,15 @@ different TOML file. Inspect the effective configuration with `uv run cartiq sho
 
 ```
 config/            default configuration
+eval/judgments/    hand-labeled relevance judgments (rubric in eval/README.md)
 src/cartiq/
   domain/          entities and value objects (no dependencies on other cartiq packages)
-  parsing/         text cleaning and quantity extraction ("6 x 200 ml")
+  parsing/         text cleaning, tokenization, quantity extraction ("6 x 200 ml")
   ingestion/       source adapters (synthetic, BigBasket) and catalog normalization
   simulation/      seeded stores, inventory, users and orders
   storage/         repository interfaces; in-memory and SQLite implementations
+  retrieval/       BM25F index over product fields (in memory)
+  evaluation/      judgments, metrics, runner, pipelines (baseline, BM25), report comparison
   snapshots.py     build and verify content-addressed snapshots
   api/             FastAPI app factory, routes, response schemas
   config.py        typed settings
@@ -62,5 +94,4 @@ src/cartiq/
 tests/unit, tests/contract (run against every storage backend), tests/integration
 ```
 
-Further packages (query, retrieval, inventory, ranking, personalization, substitutions,
-evaluation) are added in the phase that introduces them.
+Further packages (query, inventory, ranking, personalization, substitutions) are added in the phase that introduces them.

@@ -72,6 +72,49 @@ class SimulationSettings(BaseModel):
         return self
 
 
+class FieldWeight(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    weight: float = Field(ge=0)  # 0 removes the field from the index entirely
+    b: float = Field(ge=0, le=1)  # length normalization strength
+
+
+class BM25Settings(BaseModel):
+    """BM25F parameters. Fixed a priori; not tuned against the evaluation judgments."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    k1: float = Field(default=1.2, gt=0)
+    name: FieldWeight = FieldWeight(weight=3.0, b=0.75)
+    product_type: FieldWeight = FieldWeight(weight=2.0, b=0.0)
+    brand: FieldWeight = FieldWeight(weight=1.0, b=0.0)
+    sub_category: FieldWeight = FieldWeight(weight=0.5, b=0.0)
+    description: FieldWeight = FieldWeight(weight=0.3, b=0.75)
+    category: FieldWeight = FieldWeight(weight=0.0, b=0.0)
+
+
+class RetrievalSettings(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    bm25: BM25Settings = BM25Settings()
+
+
+class EvaluationSettings(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    judgments_file: Path = Path("eval/judgments/synthetic-v1.toml")
+    k: int = Field(default=10, ge=1)
+    recall_at: tuple[int, ...] = Field(default=(10, 100), min_length=1)
+    # Lowest grade that counts as a hit for MRR and Recall (2 = relevant, 3 = exact only).
+    hit_min_grade: int = Field(default=2, ge=1, le=3)
+
+    @model_validator(mode="after")
+    def _check_depths(self) -> Self:
+        if min(self.recall_at) < 1:
+            raise ValueError("recall_at depths must be >= 1")
+        return self
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="CARTIQ_",
@@ -86,6 +129,8 @@ class Settings(BaseSettings):
     api: ApiSettings = ApiSettings()
     ingestion: IngestionSettings = IngestionSettings()
     simulation: SimulationSettings = SimulationSettings()
+    retrieval: RetrievalSettings = RetrievalSettings()
+    evaluation: EvaluationSettings = EvaluationSettings()
 
     @classmethod
     def settings_customise_sources(

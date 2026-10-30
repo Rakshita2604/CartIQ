@@ -1,0 +1,1261 @@
+# Relevance judgments for the synthetic-v1 catalog (schema 2). Rubric: eval/README.md.
+# Labeled by reading the whole catalog, never from a ranker's output. Every query is
+# exhaustive: all 140 products were considered, so unlisted products are judged 0.
+# Product names in comments are for review only; ids are what count.
+
+schema_version = 2
+catalog = "synthetic-v1"
+catalog_sha256 = "d22b5de53fd9abca6164dafebfdff8bb4270d73442da1f5b8030d170a664dc38"
+labeler = "manual-v1"
+
+[[query]]
+id = "head-milk"
+text = "milk"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0001",  # Amul Taaza Toned Milk 500 ml
+  "syn-0002",  # Amul Taaza Toned Milk 1 l
+  "syn-0003",  # Amul Gold Full Cream Milk 500 ml
+  "syn-0004",  # Amul Gold Full Cream Milk 1 l
+  "syn-0005",  # Mother Dairy Toned Milk 500 ml
+  "syn-0006",  # Mother Dairy Toned Milk 1 l
+  "syn-0007",  # Mother Dairy Cow Milk 500 ml
+  "syn-0008",  # Nandini Pasteurised Toned Milk 500 ml
+  "syn-0009",  # Nandini Pasteurised Toned Milk 1 l
+]
+
+[[query]]
+id = "head-atta"
+text = "atta"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0023",  # Aashirvaad Shudh Chakki Atta 5 kg
+  "syn-0024",  # Aashirvaad Shudh Chakki Atta 10 kg
+  "syn-0025",  # Pillsbury Chakki Fresh Atta 5 kg
+  "syn-0026",  # Fortune Chakki Fresh Atta 5 kg
+  "syn-0027",  # Fortune Chakki Fresh Atta 10 kg
+]
+related = [
+  "syn-0028",  # Rajdhani Sooji Rava 500 g
+  "syn-0029",  # Rajdhani Sooji Rava 1 kg
+  "syn-0030",  # Rajdhani Besan 500 g
+]
+
+[query.reasons]
+"syn-0028" = "other flour; neighbouring type"
+"syn-0029" = "other flour; neighbouring type"
+"syn-0030" = "other flour; neighbouring type"
+
+[[query]]
+id = "head-paneer"
+text = "paneer"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0014",  # Amul Malai Paneer 200 g
+  "syn-0015",  # Amul Malai Paneer 500 g
+  "syn-0016",  # Mother Dairy Fresh Paneer 200 g
+]
+
+[[query]]
+id = "head-basmati"
+text = "basmati rice"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0031",  # India Gate Basmati Rice Classic 1 kg
+  "syn-0032",  # India Gate Basmati Rice Classic 5 kg
+  "syn-0033",  # Daawat Rozana Super Basmati Rice 1 kg
+  "syn-0034",  # Daawat Rozana Super Basmati Rice 5 kg
+  "syn-0035",  # Fortune Everyday Basmati Rice 1 kg
+]
+related = [
+  "syn-0036",  # Organic Tattva Sona Masoori Rice 1 kg
+]
+
+[query.reasons]
+"syn-0036" = "rice, but not basmati"
+
+[[query]]
+id = "head-eggs"
+text = "eggs"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0121",  # Farm Fresh White Eggs 6 pcs
+  "syn-0122",  # Farm Fresh White Eggs 12 pcs
+  "syn-0123",  # Eggoz Nutrition Brown Eggs 6 pcs
+]
+
+[[query]]
+id = "head-bread"
+text = "bread"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0118",  # Britannia 100% Whole Wheat Bread 400 g
+  "syn-0119",  # Modern Sandwich White Bread 400 g
+]
+related = [
+  "syn-0120",  # Britannia Pav 200 g
+]
+
+[query.reasons]
+"syn-0120" = "pav: neighbouring bakery type"
+
+[[query]]
+id = "head-toothpaste"
+text = "toothpaste"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0131",  # Colgate Strong Teeth Toothpaste 200 g
+  "syn-0132",  # Pepsodent Germicheck Toothpaste 150 g
+  "syn-0133",  # Patanjali Dant Kanti Toothpaste 200 g
+]
+
+[[query]]
+id = "head-onion"
+text = "onion"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0067",  # Fresh Onion 1 kg
+  "syn-0068",  # Fresh Onion 2 kg
+]
+
+[[query]]
+id = "head-chips"
+text = "chips"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0097",  # Lay's India's Magic Masala Chips 52 g
+  "syn-0098",  # Lay's India's Magic Masala Chips 90 g
+  "syn-0099",  # Lay's Classic Salted Chips 52 g
+]
+related = [
+  "syn-0100",  # Haldiram's Aloo Bhujia 200 g
+  "syn-0101",  # Haldiram's Aloo Bhujia 400 g
+  "syn-0102",  # Haldiram's Moong Dal 200 g
+  "syn-0103",  # Bikaji Bikaneri Bhujia 400 g
+]
+
+[query.reasons]
+"syn-0100" = "namkeen: neighbouring snack type"
+"syn-0101" = "namkeen: neighbouring snack type"
+"syn-0102" = "namkeen: neighbouring snack type"
+"syn-0103" = "namkeen: neighbouring snack type"
+
+[[query]]
+id = "head-detergent-powder"
+text = "detergent powder"
+segment = "head"
+coverage = "exhaustive"
+exact = [
+  "syn-0124",  # Surf Excel Easy Wash Detergent Powder 1 kg
+  "syn-0125",  # Surf Excel Easy Wash Detergent Powder 4 kg
+  "syn-0126",  # Tide Plus Jasmine & Rose Detergent Powder 1 kg
+]
+relevant = [
+  "syn-0127",  # Surf Excel Matic Front Load Liquid 1 l
+]
+
+[query.reasons]
+"syn-0127" = "liquid detergent: the stated form differs"
+
+[[query]]
+id = "misp-amul-milk"
+text = "amull milk"
+segment = "misspelled"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0001",  # Amul Taaza Toned Milk 500 ml
+  "syn-0002",  # Amul Taaza Toned Milk 1 l
+  "syn-0003",  # Amul Gold Full Cream Milk 500 ml
+  "syn-0004",  # Amul Gold Full Cream Milk 1 l
+]
+relevant = [
+  "syn-0005",  # Mother Dairy Toned Milk 500 ml
+  "syn-0006",  # Mother Dairy Toned Milk 1 l
+  "syn-0007",  # Mother Dairy Cow Milk 500 ml
+  "syn-0008",  # Nandini Pasteurised Toned Milk 500 ml
+  "syn-0009",  # Nandini Pasteurised Toned Milk 1 l
+]
+irrelevant = [
+  "syn-0010",  # Amul Masti Dahi 400 g
+  "syn-0014",  # Amul Malai Paneer 200 g
+  "syn-0017",  # Amul Pasteurised Butter 100 g
+  "syn-0052",  # Amul Pure Ghee 500 ml
+]
+
+[query.reasons]
+"syn-0005" = "same product, different brand from the one named"
+"syn-0006" = "same product, different brand from the one named"
+"syn-0007" = "same product, different brand from the one named"
+"syn-0008" = "same product, different brand from the one named"
+"syn-0009" = "same product, different brand from the one named"
+"syn-0010" = "same brand, different product type"
+"syn-0014" = "same brand, different product type"
+"syn-0017" = "same brand, different product type"
+"syn-0052" = "same brand, different product type"
+
+[[query]]
+id = "misp-paneer"
+text = "panner"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0014",  # Amul Malai Paneer 200 g
+  "syn-0015",  # Amul Malai Paneer 500 g
+  "syn-0016",  # Mother Dairy Fresh Paneer 200 g
+]
+
+[[query]]
+id = "misp-tomato"
+text = "tomatto"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0071",  # Fresh Tomato Hybrid 500 g
+  "syn-0072",  # Fresh Tomato Hybrid 1 kg
+]
+irrelevant = [
+  "syn-0114",  # Maggi Rich Tomato Ketchup 500 g
+  "syn-0115",  # Maggi Rich Tomato Ketchup 1 kg
+  "syn-0116",  # Kissan Fresh Tomato Ketchup 850 g
+]
+
+[query.reasons]
+"syn-0114" = "ketchup: a tomato product, not fresh tomato"
+"syn-0115" = "ketchup: a tomato product, not fresh tomato"
+"syn-0116" = "ketchup: a tomato product, not fresh tomato"
+
+[[query]]
+id = "misp-biscuit"
+text = "biscut"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0104",  # Parle Parle-G Gold Biscuits 100 g
+  "syn-0105",  # Parle Parle-G Gold Biscuits 1 kg
+  "syn-0106",  # Britannia Bourbon Cream Biscuits 120 g
+  "syn-0107",  # Britannia Marie Gold Biscuits 250 g
+]
+relevant = [
+  "syn-0108",  # Sunfeast Dark Fantasy Choco Fills 75 g
+]
+
+[query.reasons]
+"syn-0108" = "cookies: very close variant of biscuits"
+
+[[query]]
+id = "misp-detergent"
+text = "detergant"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0124",  # Surf Excel Easy Wash Detergent Powder 1 kg
+  "syn-0125",  # Surf Excel Easy Wash Detergent Powder 4 kg
+  "syn-0126",  # Tide Plus Jasmine & Rose Detergent Powder 1 kg
+  "syn-0127",  # Surf Excel Matic Front Load Liquid 1 l
+]
+
+[[query]]
+id = "misp-colgate"
+text = "colgat toothpaste"
+segment = "misspelled"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0131",  # Colgate Strong Teeth Toothpaste 200 g
+]
+relevant = [
+  "syn-0132",  # Pepsodent Germicheck Toothpaste 150 g
+  "syn-0133",  # Patanjali Dant Kanti Toothpaste 200 g
+]
+
+[query.reasons]
+"syn-0132" = "same product, different brand from the one named"
+"syn-0133" = "same product, different brand from the one named"
+
+[[query]]
+id = "misp-maggi-noodles"
+text = "magii noodles"
+segment = "misspelled"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0109",  # Maggi 2-Minute Masala Noodles 70 g
+  "syn-0110",  # Maggi 2-Minute Masala Noodles 12 x 70 g
+]
+relevant = [
+  "syn-0111",  # Yippee Magic Masala Noodles 4 x 70 g
+]
+
+[query.reasons]
+"syn-0111" = "same product, different brand from the one named"
+
+[[query]]
+id = "misp-coriander"
+text = "corriander"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0073",  # Fresh Coriander Leaves 100 g
+]
+
+[[query]]
+id = "misp-banana"
+text = "bannana"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0078",  # Robusta Banana 6 pcs
+  "syn-0079",  # Robusta Banana 12 pcs
+]
+
+[[query]]
+id = "misp-sunflower-oil"
+text = "sunflowr oil"
+segment = "misspelled"
+coverage = "exhaustive"
+exact = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+]
+related = [
+  "syn-0050",  # Fortune Kachi Ghani Mustard Oil 1 l
+  "syn-0051",  # Patanjali Kachi Ghani Mustard Oil 1 l
+]
+
+[query.reasons]
+"syn-0050" = "mustard oil: other cooking oil"
+"syn-0051" = "mustard oil: other cooking oil"
+
+[[query]]
+id = "hin-doodh"
+text = "doodh"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0001",  # Amul Taaza Toned Milk 500 ml
+  "syn-0002",  # Amul Taaza Toned Milk 1 l
+  "syn-0003",  # Amul Gold Full Cream Milk 500 ml
+  "syn-0004",  # Amul Gold Full Cream Milk 1 l
+  "syn-0005",  # Mother Dairy Toned Milk 500 ml
+  "syn-0006",  # Mother Dairy Toned Milk 1 l
+  "syn-0007",  # Mother Dairy Cow Milk 500 ml
+  "syn-0008",  # Nandini Pasteurised Toned Milk 500 ml
+  "syn-0009",  # Nandini Pasteurised Toned Milk 1 l
+]
+
+[[query]]
+id = "hin-dahi"
+text = "dahi"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0010",  # Amul Masti Dahi 400 g
+  "syn-0011",  # Amul Masti Dahi 1 kg
+  "syn-0012",  # Mother Dairy Classic Curd 400 g
+  "syn-0013",  # Nestle a+ Nourish Dahi 400 g
+]
+
+[[query]]
+id = "hin-aloo"
+text = "aloo"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0069",  # Fresh Potato 1 kg
+  "syn-0070",  # Fresh Potato 2 kg
+]
+irrelevant = [
+  "syn-0100",  # Haldiram's Aloo Bhujia 200 g
+  "syn-0101",  # Haldiram's Aloo Bhujia 400 g
+]
+
+[query.reasons]
+"syn-0100" = "Aloo Bhujia is a snack, not potato"
+"syn-0101" = "Aloo Bhujia is a snack, not potato"
+
+[[query]]
+id = "hin-pyaz"
+text = "pyaz"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0067",  # Fresh Onion 1 kg
+  "syn-0068",  # Fresh Onion 2 kg
+]
+
+[[query]]
+id = "hin-cheeni"
+text = "cheeni"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0064",  # Madhur Pure Sugar 1 kg
+  "syn-0065",  # Madhur Pure Sugar 5 kg
+]
+related = [
+  "syn-0066",  # Organic Tattva Jaggery Powder 500 g
+]
+
+[query.reasons]
+"syn-0066" = "jaggery: alternative sweetener"
+
+[[query]]
+id = "hin-namak"
+text = "namak"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0062",  # Tata Salt Iodised 1 kg
+  "syn-0063",  # Aashirvaad Iodised Salt 1 kg
+]
+
+[[query]]
+id = "hin-chawal"
+text = "chawal"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0031",  # India Gate Basmati Rice Classic 1 kg
+  "syn-0032",  # India Gate Basmati Rice Classic 5 kg
+  "syn-0033",  # Daawat Rozana Super Basmati Rice 1 kg
+  "syn-0034",  # Daawat Rozana Super Basmati Rice 5 kg
+  "syn-0035",  # Fortune Everyday Basmati Rice 1 kg
+  "syn-0036",  # Organic Tattva Sona Masoori Rice 1 kg
+]
+
+[[query]]
+id = "hin-anda"
+text = "anda"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0121",  # Farm Fresh White Eggs 6 pcs
+  "syn-0122",  # Farm Fresh White Eggs 12 pcs
+  "syn-0123",  # Eggoz Nutrition Brown Eggs 6 pcs
+]
+
+[[query]]
+id = "hin-haldi"
+text = "haldi"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0057",  # Everest Turmeric Powder 100 g
+  "syn-0058",  # Everest Turmeric Powder 200 g
+]
+
+[[query]]
+id = "hin-sarson-tel"
+text = "sarson ka tel"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0050",  # Fortune Kachi Ghani Mustard Oil 1 l
+  "syn-0051",  # Patanjali Kachi Ghani Mustard Oil 1 l
+]
+related = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+]
+
+[query.reasons]
+"syn-0046" = "other cooking oil"
+"syn-0047" = "other cooking oil"
+"syn-0048" = "other cooking oil"
+"syn-0049" = "other cooking oil"
+
+[[query]]
+id = "hin-adrak"
+text = "adrak"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0075",  # Fresh Ginger 200 g
+]
+
+[[query]]
+id = "hin-chai-patti"
+text = "chai patti"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0082",  # Tata Tea Premium Leaf Tea 250 g
+  "syn-0083",  # Tata Tea Premium Leaf Tea 1 kg
+  "syn-0084",  # Red Label Natural Care Tea 250 g
+]
+relevant = [
+  "syn-0085",  # Tetley Green Tea Lemon & Honey 25 pcs
+]
+
+[query.reasons]
+"syn-0085" = "green tea: close variant of leaf tea"
+
+[[query]]
+id = "hin-kela"
+text = "kela"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0078",  # Robusta Banana 6 pcs
+  "syn-0079",  # Robusta Banana 12 pcs
+]
+
+[[query]]
+id = "hin-sabun"
+text = "sabun"
+segment = "hinglish"
+attributes = ["multi_intent"]
+coverage = "exhaustive"
+exact = [
+  "syn-0134",  # Lifebuoy Total 10 Soap 4 x 125 g
+  "syn-0135",  # Dettol Original Soap 3 x 125 g
+]
+relevant = [
+  "syn-0128",  # Vim Dishwash Bar 200 g
+  "syn-0129",  # Vim Dishwash Bar 3 x 200 g
+]
+related = [
+  "syn-0136",  # Dettol Original Liquid Hand Wash 200 ml
+]
+
+[[query.interpretation]]
+name = "bathing soap"
+share = "dominant"
+products = [
+  "syn-0134",  # Lifebuoy Total 10 Soap 4 x 125 g
+  "syn-0135",  # Dettol Original Soap 3 x 125 g
+  "syn-0136",  # Dettol Original Liquid Hand Wash 200 ml
+]
+
+[[query.interpretation]]
+name = "dishwash bar"
+share = "minority"
+products = [
+  "syn-0128",  # Vim Dishwash Bar 200 g
+  "syn-0129",  # Vim Dishwash Bar 3 x 200 g
+]
+
+[query.reasons]
+"syn-0128" = "minority interpretation: dishwash bar"
+"syn-0129" = "minority interpretation: dishwash bar"
+"syn-0136" = "liquid hand wash: neighbouring type"
+
+[[query]]
+id = "hin-nimbu"
+text = "nimbu"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0081",  # Fresh Lemon 250 g
+]
+irrelevant = [
+  "syn-0085",  # Tetley Green Tea Lemon & Honey 25 pcs
+  "syn-0130",  # Vim Lemon Dishwash Liquid Gel 500 ml
+]
+
+[query.reasons]
+"syn-0085" = "lemon-flavoured or lemon-scented, not lemons"
+"syn-0130" = "lemon-flavoured or lemon-scented, not lemons"
+
+[[query]]
+id = "hin-thanda"
+text = "thanda"
+segment = "hinglish"
+coverage = "exhaustive"
+exact = [
+  "syn-0089",  # Coca-Cola Soft Drink 750 ml
+  "syn-0090",  # Coca-Cola Soft Drink 6 x 300 ml
+  "syn-0091",  # Thums Up Soft Drink 750 ml
+  "syn-0092",  # Sprite Lime Flavoured Soft Drink 750 ml
+]
+related = [
+  "syn-0093",  # Real Mixed Fruit Juice 1 l
+  "syn-0094",  # Maaza Mango Drink 600 ml
+  "syn-0095",  # Maaza Mango Drink 6 x 200 ml
+  "syn-0096",  # Frooti Mango Drink 6 x 200 ml
+]
+
+[query.reasons]
+"syn-0093" = "juice drink: neighbouring beverage type"
+"syn-0094" = "juice drink: neighbouring beverage type"
+"syn-0095" = "juice drink: neighbouring beverage type"
+"syn-0096" = "juice drink: neighbouring beverage type"
+
+[[query]]
+id = "brand-amul-butter"
+text = "amul butter"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0017",  # Amul Pasteurised Butter 100 g
+  "syn-0018",  # Amul Pasteurised Butter 500 g
+  "syn-0019",  # Amul Garlic & Herbs Butter 100 g
+]
+relevant = [
+  "syn-0020",  # Britannia Salted Butter 100 g
+]
+
+[query.reasons]
+"syn-0020" = "same product, different brand from the one named"
+
+[[query]]
+id = "brand-tata-salt"
+text = "tata salt"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0062",  # Tata Salt Iodised 1 kg
+]
+relevant = [
+  "syn-0063",  # Aashirvaad Iodised Salt 1 kg
+]
+irrelevant = [
+  "syn-0082",  # Tata Tea Premium Leaf Tea 250 g
+  "syn-0083",  # Tata Tea Premium Leaf Tea 1 kg
+  "syn-0038",  # Tata Sampann Unpolished Toor Dal 500 g
+]
+
+[query.reasons]
+"syn-0063" = "same product, different brand from the one named"
+"syn-0082" = "Tata-family brand, different product"
+"syn-0083" = "Tata-family brand, different product"
+"syn-0038" = "Tata-family brand, different product"
+
+[[query]]
+id = "brand-fortune-oil"
+text = "fortune oil"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+  "syn-0050",  # Fortune Kachi Ghani Mustard Oil 1 l
+]
+relevant = [
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+  "syn-0051",  # Patanjali Kachi Ghani Mustard Oil 1 l
+]
+irrelevant = [
+  "syn-0026",  # Fortune Chakki Fresh Atta 5 kg
+  "syn-0035",  # Fortune Everyday Basmati Rice 1 kg
+  "syn-0040",  # Fortune Arhar Dal 1 kg
+]
+
+[query.reasons]
+"syn-0048" = "same product, different brand from the one named"
+"syn-0049" = "same product, different brand from the one named"
+"syn-0051" = "same product, different brand from the one named"
+"syn-0026" = "same brand, different product type"
+"syn-0035" = "same brand, different product type"
+"syn-0040" = "same brand, different product type"
+
+[[query]]
+id = "brand-surf-excel"
+text = "surf excel"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0124",  # Surf Excel Easy Wash Detergent Powder 1 kg
+  "syn-0125",  # Surf Excel Easy Wash Detergent Powder 4 kg
+  "syn-0127",  # Surf Excel Matic Front Load Liquid 1 l
+]
+relevant = [
+  "syn-0126",  # Tide Plus Jasmine & Rose Detergent Powder 1 kg
+]
+
+[query.reasons]
+"syn-0126" = "same product, different brand from the one named"
+
+[[query]]
+id = "brand-dettol-soap"
+text = "dettol soap"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0135",  # Dettol Original Soap 3 x 125 g
+]
+relevant = [
+  "syn-0134",  # Lifebuoy Total 10 Soap 4 x 125 g
+]
+related = [
+  "syn-0136",  # Dettol Original Liquid Hand Wash 200 ml
+]
+
+[query.reasons]
+"syn-0134" = "same product, different brand from the one named"
+"syn-0136" = "same brand, hand wash: neighbouring type"
+
+[[query]]
+id = "brand-nescafe"
+text = "nescafe"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0086",  # Nescafe Classic Instant Coffee 50 g
+  "syn-0087",  # Nescafe Classic Instant Coffee 100 g
+]
+relevant = [
+  "syn-0088",  # Bru Instant Coffee 100 g
+]
+
+[query.reasons]
+"syn-0088" = "same product, different brand from the one named"
+
+[[query]]
+id = "brand-haldiram-bhujia"
+text = "haldiram bhujia"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0100",  # Haldiram's Aloo Bhujia 200 g
+  "syn-0101",  # Haldiram's Aloo Bhujia 400 g
+]
+relevant = [
+  "syn-0103",  # Bikaji Bikaneri Bhujia 400 g
+]
+related = [
+  "syn-0102",  # Haldiram's Moong Dal 200 g
+]
+
+[query.reasons]
+"syn-0103" = "same product, different brand from the one named"
+"syn-0102" = "same brand namkeen, not bhujia"
+
+[[query]]
+id = "brand-aashirvaad-atta"
+text = "aashirvaad atta"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0023",  # Aashirvaad Shudh Chakki Atta 5 kg
+  "syn-0024",  # Aashirvaad Shudh Chakki Atta 10 kg
+]
+relevant = [
+  "syn-0025",  # Pillsbury Chakki Fresh Atta 5 kg
+  "syn-0026",  # Fortune Chakki Fresh Atta 5 kg
+  "syn-0027",  # Fortune Chakki Fresh Atta 10 kg
+]
+irrelevant = [
+  "syn-0063",  # Aashirvaad Iodised Salt 1 kg
+]
+
+[query.reasons]
+"syn-0025" = "same product, different brand from the one named"
+"syn-0026" = "same product, different brand from the one named"
+"syn-0027" = "same product, different brand from the one named"
+"syn-0063" = "same brand, different product type"
+
+[[query]]
+id = "brand-mother-dairy-paneer"
+text = "mother dairy paneer"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0016",  # Mother Dairy Fresh Paneer 200 g
+]
+relevant = [
+  "syn-0014",  # Amul Malai Paneer 200 g
+  "syn-0015",  # Amul Malai Paneer 500 g
+]
+
+[query.reasons]
+"syn-0014" = "same product, different brand from the one named"
+"syn-0015" = "same product, different brand from the one named"
+
+[[query]]
+id = "brand-coca-cola"
+text = "coca cola"
+segment = "brand"
+coverage = "exhaustive"
+exact = [
+  "syn-0089",  # Coca-Cola Soft Drink 750 ml
+  "syn-0090",  # Coca-Cola Soft Drink 6 x 300 ml
+]
+relevant = [
+  "syn-0091",  # Thums Up Soft Drink 750 ml
+]
+related = [
+  "syn-0092",  # Sprite Lime Flavoured Soft Drink 750 ml
+]
+
+[query.reasons]
+"syn-0091" = "other cola brand"
+"syn-0092" = "other brand, non-cola soft drink"
+
+[[query]]
+id = "qty-amul-milk-1l"
+text = "amul milk 1 litre"
+segment = "quantity"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0002",  # Amul Taaza Toned Milk 1 l
+  "syn-0004",  # Amul Gold Full Cream Milk 1 l
+]
+relevant = [
+  "syn-0001",  # Amul Taaza Toned Milk 500 ml
+  "syn-0003",  # Amul Gold Full Cream Milk 500 ml
+  "syn-0006",  # Mother Dairy Toned Milk 1 l
+  "syn-0009",  # Nandini Pasteurised Toned Milk 1 l
+]
+related = [
+  "syn-0005",  # Mother Dairy Toned Milk 500 ml
+  "syn-0007",  # Mother Dairy Cow Milk 500 ml
+  "syn-0008",  # Nandini Pasteurised Toned Milk 500 ml
+]
+
+[query.reasons]
+"syn-0001" = "named brand, different size"
+"syn-0003" = "named brand, different size"
+"syn-0006" = "1 l, but another brand"
+"syn-0009" = "1 l, but another brand"
+"syn-0005" = "other brand and other size"
+"syn-0007" = "other brand and other size"
+"syn-0008" = "other brand and other size"
+
+[[query]]
+id = "qty-atta-10kg"
+text = "atta 10kg"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0024",  # Aashirvaad Shudh Chakki Atta 10 kg
+  "syn-0027",  # Fortune Chakki Fresh Atta 10 kg
+]
+relevant = [
+  "syn-0023",  # Aashirvaad Shudh Chakki Atta 5 kg
+  "syn-0025",  # Pillsbury Chakki Fresh Atta 5 kg
+  "syn-0026",  # Fortune Chakki Fresh Atta 5 kg
+]
+
+[query.reasons]
+"syn-0023" = "atta, other size"
+"syn-0025" = "atta, other size"
+"syn-0026" = "atta, other size"
+
+[[query]]
+id = "qty-aashirvaad-atta-5kg"
+text = "aashirvaad atta 5 kg"
+segment = "quantity"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0023",  # Aashirvaad Shudh Chakki Atta 5 kg
+]
+relevant = [
+  "syn-0024",  # Aashirvaad Shudh Chakki Atta 10 kg
+  "syn-0025",  # Pillsbury Chakki Fresh Atta 5 kg
+  "syn-0026",  # Fortune Chakki Fresh Atta 5 kg
+]
+related = [
+  "syn-0027",  # Fortune Chakki Fresh Atta 10 kg
+]
+
+[query.reasons]
+"syn-0024" = "named brand, different size"
+"syn-0025" = "5 kg, but another brand"
+"syn-0026" = "5 kg, but another brand"
+"syn-0027" = "other brand and other size"
+
+[[query]]
+id = "qty-onion-2kg"
+text = "onion 2kg"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0068",  # Fresh Onion 2 kg
+]
+relevant = [
+  "syn-0067",  # Fresh Onion 1 kg
+]
+
+[query.reasons]
+"syn-0067" = "onion, other size"
+
+[[query]]
+id = "qty-sugar-5kg"
+text = "sugar 5 kg"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0065",  # Madhur Pure Sugar 5 kg
+]
+relevant = [
+  "syn-0064",  # Madhur Pure Sugar 1 kg
+]
+related = [
+  "syn-0066",  # Organic Tattva Jaggery Powder 500 g
+]
+
+[query.reasons]
+"syn-0064" = "sugar, other size"
+"syn-0066" = "jaggery: alternative sweetener, other size"
+
+[[query]]
+id = "qty-maggi-12-pack"
+text = "maggi 12 pack"
+segment = "quantity"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0110",  # Maggi 2-Minute Masala Noodles 12 x 70 g
+]
+relevant = [
+  "syn-0109",  # Maggi 2-Minute Masala Noodles 70 g
+]
+related = [
+  "syn-0111",  # Yippee Magic Masala Noodles 4 x 70 g
+]
+
+[query.reasons]
+"syn-0109" = "named brand, single pack instead of 12"
+"syn-0111" = "other brand and other pack size"
+
+[[query]]
+id = "qty-eggs-12"
+text = "eggs 12"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0122",  # Farm Fresh White Eggs 12 pcs
+]
+relevant = [
+  "syn-0121",  # Farm Fresh White Eggs 6 pcs
+  "syn-0123",  # Eggoz Nutrition Brown Eggs 6 pcs
+]
+
+[query.reasons]
+"syn-0121" = "eggs, 6 instead of 12"
+"syn-0123" = "eggs, 6 instead of 12"
+
+[[query]]
+id = "qty-fortune-sunflower-5l"
+text = "fortune sunflower oil 5 litre"
+segment = "quantity"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+]
+relevant = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+]
+related = [
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+]
+
+[query.reasons]
+"syn-0046" = "named brand, different size"
+"syn-0049" = "5 l, but another brand"
+"syn-0048" = "other brand and other size"
+
+[[query]]
+id = "qty-coke-6x300"
+text = "coke 6 x 300 ml"
+segment = "quantity"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0090",  # Coca-Cola Soft Drink 6 x 300 ml
+]
+relevant = [
+  "syn-0089",  # Coca-Cola Soft Drink 750 ml
+]
+related = [
+  "syn-0091",  # Thums Up Soft Drink 750 ml
+]
+
+[query.reasons]
+"syn-0089" = "named brand, single 750 ml bottle"
+"syn-0091" = "other cola brand, other pack"
+
+[[query]]
+id = "qty-toor-dal-1kg"
+text = "toor dal 1kg"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0039",  # Tata Sampann Unpolished Toor Dal 1 kg
+  "syn-0040",  # Fortune Arhar Dal 1 kg
+]
+relevant = [
+  "syn-0038",  # Tata Sampann Unpolished Toor Dal 500 g
+]
+
+[query.reasons]
+"syn-0038" = "toor dal, other size"
+
+[[query]]
+id = "qty-paneer-500g"
+text = "paneer 500g"
+segment = "quantity"
+coverage = "exhaustive"
+exact = [
+  "syn-0015",  # Amul Malai Paneer 500 g
+]
+relevant = [
+  "syn-0014",  # Amul Malai Paneer 200 g
+  "syn-0016",  # Mother Dairy Fresh Paneer 200 g
+]
+
+[query.reasons]
+"syn-0014" = "paneer, other size"
+"syn-0016" = "paneer, other size"
+
+[[query]]
+id = "amb-oil"
+text = "oil"
+segment = "ambiguous"
+coverage = "exhaustive"
+exact = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+  "syn-0050",  # Fortune Kachi Ghani Mustard Oil 1 l
+  "syn-0051",  # Patanjali Kachi Ghani Mustard Oil 1 l
+]
+relevant = [
+  "syn-0139",  # Parachute 100% Pure Coconut Oil 250 ml
+  "syn-0140",  # Parachute 100% Pure Coconut Oil 500 ml
+]
+related = [
+  "syn-0052",  # Amul Pure Ghee 500 ml
+  "syn-0053",  # Amul Pure Ghee 1 l
+  "syn-0054",  # Patanjali Cow Ghee 500 ml
+  "syn-0055",  # Patanjali Cow Ghee 1 l
+]
+
+[[query.interpretation]]
+name = "cooking oil"
+share = "dominant"
+products = [
+  "syn-0046",  # Fortune Sunlite Refined Sunflower Oil 1 l
+  "syn-0047",  # Fortune Sunlite Refined Sunflower Oil 5 l
+  "syn-0048",  # Saffola Gold Refined Cooking Oil 1 l
+  "syn-0049",  # Saffola Gold Refined Cooking Oil 5 l
+  "syn-0050",  # Fortune Kachi Ghani Mustard Oil 1 l
+  "syn-0051",  # Patanjali Kachi Ghani Mustard Oil 1 l
+  "syn-0052",  # Amul Pure Ghee 500 ml
+  "syn-0053",  # Amul Pure Ghee 1 l
+  "syn-0054",  # Patanjali Cow Ghee 500 ml
+  "syn-0055",  # Patanjali Cow Ghee 1 l
+]
+
+[[query.interpretation]]
+name = "hair oil"
+share = "minority"
+products = [
+  "syn-0139",  # Parachute 100% Pure Coconut Oil 250 ml
+  "syn-0140",  # Parachute 100% Pure Coconut Oil 500 ml
+]
+
+[query.reasons]
+"syn-0139" = "minority interpretation: hair oil"
+"syn-0140" = "minority interpretation: hair oil"
+"syn-0052" = "ghee: cooking fat, neighbouring type"
+"syn-0053" = "ghee: cooking fat, neighbouring type"
+"syn-0054" = "ghee: cooking fat, neighbouring type"
+"syn-0055" = "ghee: cooking fat, neighbouring type"
+
+[[query]]
+id = "amb-masala"
+text = "masala"
+segment = "ambiguous"
+coverage = "exhaustive"
+exact = [
+  "syn-0059",  # MDH Garam Masala 100 g
+  "syn-0060",  # Everest Chicken Masala 100 g
+]
+relevant = [
+  "syn-0056",  # MDH Deggi Mirch 100 g
+  "syn-0057",  # Everest Turmeric Powder 100 g
+  "syn-0058",  # Everest Turmeric Powder 200 g
+  "syn-0061",  # Catch Jeera Whole 100 g
+]
+
+[[query.interpretation]]
+name = "blended masala"
+share = "dominant"
+products = [
+  "syn-0059",  # MDH Garam Masala 100 g
+  "syn-0060",  # Everest Chicken Masala 100 g
+]
+
+[[query.interpretation]]
+name = "single spice"
+share = "minority"
+products = [
+  "syn-0056",  # MDH Deggi Mirch 100 g
+  "syn-0057",  # Everest Turmeric Powder 100 g
+  "syn-0058",  # Everest Turmeric Powder 200 g
+  "syn-0061",  # Catch Jeera Whole 100 g
+]
+
+[query.reasons]
+"syn-0056" = "minority interpretation: single spice"
+"syn-0057" = "minority interpretation: single spice"
+"syn-0058" = "minority interpretation: single spice"
+"syn-0061" = "minority interpretation: single spice"
+
+[[query]]
+id = "amb-maggi"
+text = "maggi"
+segment = "ambiguous"
+attributes = ["brand"]
+coverage = "exhaustive"
+exact = [
+  "syn-0109",  # Maggi 2-Minute Masala Noodles 70 g
+  "syn-0110",  # Maggi 2-Minute Masala Noodles 12 x 70 g
+]
+relevant = [
+  "syn-0114",  # Maggi Rich Tomato Ketchup 500 g
+  "syn-0115",  # Maggi Rich Tomato Ketchup 1 kg
+]
+related = [
+  "syn-0111",  # Yippee Magic Masala Noodles 4 x 70 g
+]
+
+[[query.interpretation]]
+name = "maggi noodles"
+share = "dominant"
+products = [
+  "syn-0109",  # Maggi 2-Minute Masala Noodles 70 g
+  "syn-0110",  # Maggi 2-Minute Masala Noodles 12 x 70 g
+  "syn-0111",  # Yippee Magic Masala Noodles 4 x 70 g
+]
+
+[[query.interpretation]]
+name = "maggi ketchup"
+share = "minority"
+products = [
+  "syn-0114",  # Maggi Rich Tomato Ketchup 500 g
+  "syn-0115",  # Maggi Rich Tomato Ketchup 1 kg
+]
+
+[query.reasons]
+"syn-0114" = "minority interpretation: Maggi ketchup"
+"syn-0115" = "minority interpretation: Maggi ketchup"
+"syn-0111" = "other brand instant noodles"
+
+[[query]]
+id = "amb-dal"
+text = "dal"
+segment = "ambiguous"
+coverage = "exhaustive"
+exact = [
+  "syn-0038",  # Tata Sampann Unpolished Toor Dal 500 g
+  "syn-0039",  # Tata Sampann Unpolished Toor Dal 1 kg
+  "syn-0040",  # Fortune Arhar Dal 1 kg
+  "syn-0041",  # Tata Sampann Unpolished Moong Dal 500 g
+  "syn-0042",  # Tata Sampann Unpolished Moong Dal 1 kg
+  "syn-0043",  # Rajdhani Chana Dal 1 kg
+  "syn-0044",  # Tata Sampann Masoor Dal Whole 500 g
+]
+related = [
+  "syn-0102",  # Haldiram's Moong Dal 200 g
+]
+
+[[query.interpretation]]
+name = "lentils"
+share = "dominant"
+products = [
+  "syn-0038",  # Tata Sampann Unpolished Toor Dal 500 g
+  "syn-0039",  # Tata Sampann Unpolished Toor Dal 1 kg
+  "syn-0040",  # Fortune Arhar Dal 1 kg
+  "syn-0041",  # Tata Sampann Unpolished Moong Dal 500 g
+  "syn-0042",  # Tata Sampann Unpolished Moong Dal 1 kg
+  "syn-0043",  # Rajdhani Chana Dal 1 kg
+  "syn-0044",  # Tata Sampann Masoor Dal Whole 500 g
+]
+
+[[query.interpretation]]
+name = "dal namkeen"
+share = "fringe"
+products = [
+  "syn-0102",  # Haldiram's Moong Dal 200 g
+]
+
+[query.reasons]
+"syn-0102" = "fringe interpretation: moong dal namkeen"
+
+[[query]]
+id = "amb-chicken"
+text = "chicken"
+segment = "ambiguous"
+attributes = ["no_exact_match"]
+coverage = "exhaustive"
+exact = []
+relevant = [
+  "syn-0060",  # Everest Chicken Masala 100 g
+]
+
+[[query.interpretation]]
+name = "chicken meat"
+share = "dominant"
+products = []
+
+[[query.interpretation]]
+name = "chicken masala"
+share = "minority"
+products = [
+  "syn-0060",  # Everest Chicken Masala 100 g
+]
+
+[query.reasons]
+"syn-0060" = "minority interpretation: chicken masala"
+
+[[query]]
+id = "amb-soap"
+text = "soap"
+segment = "ambiguous"
+coverage = "exhaustive"
+exact = [
+  "syn-0134",  # Lifebuoy Total 10 Soap 4 x 125 g
+  "syn-0135",  # Dettol Original Soap 3 x 125 g
+]
+relevant = [
+  "syn-0128",  # Vim Dishwash Bar 200 g
+  "syn-0129",  # Vim Dishwash Bar 3 x 200 g
+]
+related = [
+  "syn-0136",  # Dettol Original Liquid Hand Wash 200 ml
+]
+
+[[query.interpretation]]
+name = "bathing soap"
+share = "dominant"
+products = [
+  "syn-0134",  # Lifebuoy Total 10 Soap 4 x 125 g
+  "syn-0135",  # Dettol Original Soap 3 x 125 g
+  "syn-0136",  # Dettol Original Liquid Hand Wash 200 ml
+]
+
+[[query.interpretation]]
+name = "dishwash bar"
+share = "minority"
+products = [
+  "syn-0128",  # Vim Dishwash Bar 200 g
+  "syn-0129",  # Vim Dishwash Bar 3 x 200 g
+]
+
+[query.reasons]
+"syn-0128" = "minority interpretation: dishwash bar"
+"syn-0129" = "minority interpretation: dishwash bar"
+"syn-0136" = "liquid hand wash: neighbouring type"

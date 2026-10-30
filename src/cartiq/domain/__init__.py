@@ -1,7 +1,16 @@
 """Domain entities and value objects. This package imports nothing else from cartiq."""
 
 from cartiq.domain.catalog import Dimension, Product, Quantity, Unit
-from cartiq.domain.evaluation import Grade, Judgment, QuerySegment
+from cartiq.domain.evaluation import (
+    SEGMENT_ATTRIBUTE,
+    Coverage,
+    Grade,
+    Interpretation,
+    InterpretationShare,
+    JudgedQuery,
+    QueryAttribute,
+    QuerySegment,
+)
 from cartiq.domain.inventory import StockRecord, Store
 from cartiq.domain.orders import Order, OrderLine, User
 from cartiq.domain.search import (
@@ -15,17 +24,22 @@ from cartiq.domain.search import (
 )
 
 __all__ = [
+    "SEGMENT_ATTRIBUTE",
     "Candidate",
     "Constraint",
+    "Coverage",
     "Dimension",
     "Grade",
-    "Judgment",
+    "Interpretation",
+    "InterpretationShare",
+    "JudgedQuery",
     "MatchTier",
     "Order",
     "OrderLine",
     "ParsedQuery",
     "Product",
     "Quantity",
+    "QueryAttribute",
     "QuerySegment",
     "ScoredProduct",
     "StockRecord",

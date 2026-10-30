@@ -38,3 +38,21 @@ popularity_exponent = 1.0    # Zipf exponent for global product popularity
 history_start = 2026-01-01
 history_days = 90
 inventory_as_of = 2026-04-01T00:00:00Z
+
+[retrieval.bm25]
+# BM25F field weights and length normalization, fixed before evaluation (not tuned).
+# weight = 0 removes a field from the index: it affects neither scores, document
+# frequencies nor average lengths. The top-level category is excluded on purpose.
+k1 = 1.2
+name = { weight = 3.0, b = 0.75 }          # leading brand prefix removed
+product_type = { weight = 2.0, b = 0.0 }   # last category level
+brand = { weight = 1.0, b = 0.0 }
+sub_category = { weight = 0.5, b = 0.0 }   # middle category level(s)
+description = { weight = 0.3, b = 0.75 }
+category = { weight = 0.0, b = 0.0 }       # top level, e.g. "Foodgrains, Oil & Masala"
+
+[evaluation]
+judgments_file = "eval/judgments/synthetic-v1.toml"
+k = 10                       # cut-off for NDCG, MRR and Judged
+recall_at = [10, 100]        # retrieval depths for whole-catalog Recall@K
+hit_min_grade = 2            # lowest grade counted as a hit by MRR and Recall (3 = exact only)

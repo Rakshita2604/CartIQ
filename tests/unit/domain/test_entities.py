@@ -8,15 +8,12 @@ import pytest
 from cartiq.domain import (
     Candidate,
     Constraint,
-    Grade,
-    Judgment,
     MatchTier,
     Order,
     OrderLine,
     ParsedQuery,
     Product,
     Quantity,
-    QuerySegment,
     ScoredProduct,
     StockRecord,
     Substitute,
@@ -153,18 +150,3 @@ class TestScoredProduct:
 def test_substitute_cannot_reference_itself() -> None:
     with pytest.raises(ValueError, match="itself"):
         Substitute("P1", "P1", score=0.9, reason=SubstituteReason.SAME_CATEGORY_SIZE)
-
-
-class TestJudgment:
-    def test_valid_judgment(self) -> None:
-        judgment = Judgment("q1", "doodh", QuerySegment.HINGLISH, "P1", Grade.EXACT, "manual:v1")
-
-        assert judgment.grade == 3
-
-    def test_requires_grade_enum(self) -> None:
-        with pytest.raises(ValueError, match="Grade"):
-            Judgment("q1", "doodh", QuerySegment.HINGLISH, "P1", 5, "manual:v1")  # type: ignore[arg-type]
-
-    def test_requires_labeler(self) -> None:
-        with pytest.raises(ValueError, match="labeler"):
-            Judgment("q1", "doodh", QuerySegment.HINGLISH, "P1", Grade.EXACT, "")
