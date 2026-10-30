@@ -1,0 +1,48 @@
+# Brand aliases, version brand-aliases-v1. FROZEN: do not edit; add a new version.
+#
+# Source: hand-curated (manual-v1) nicknames and alternative spellings of brands that
+# exist in the synthetic-v1 or BigBasket catalogs. Only aliases that no generic rule
+# derives: case, punctuation and possessives (Haldirams / Haldiram's, Lays / Lay's) are
+# handled by brand detection, misspellings by spelling correction.
+#
+# Semantics: when the tokens of `alias` appear in a query, the query names `brand`
+# (matched against catalog brands by tokens, case-insensitively).
+
+schema_version = 1
+version = "brand-aliases-v1"
+
+[[alias]]
+alias = "coke"
+brand = "Coca-Cola"
+
+[[alias]]
+alias = "thumsup"
+brand = "Thums Up"
+
+[[alias]]
+alias = "hns"
+brand = "Head & Shoulders"
+
+[[alias]]
+alias = "h&s"
+brand = "Head & Shoulders"
+
+[[alias]]
+alias = "head and shoulders"
+brand = "Head & Shoulders"
+
+[[alias]]
+alias = "surf"
+brand = "Surf Excel"
+
+[[alias]]
+alias = "parle g"
+brand = "Parle"
+
+[[alias]]
+alias = "parleg"
+brand = "Parle"
+
+[[alias]]
+alias = "nescafé"
+brand = "Nescafe"

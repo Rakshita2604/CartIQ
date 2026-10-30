@@ -1,0 +1,632 @@
+# Hinglish grocery lexicon, version hinglish-v1. FROZEN: do not edit; add a new version.
+#
+# Source: hand-curated (manual-v1) common Hindi/Hinglish names, with common romanized
+# spellings, for the product types of the synthetic-v1 catalog and the grocery product
+# types of the BigBasket catalog (staples, pulses, oils, spices, produce, dairy, eggs,
+# bakery, beverages, household). Built from the catalogs, not from evaluation queries
+# or system output. The author had seen the 63 development queries, which is why a
+# held-out query set is written by someone else after this file is frozen.
+#
+# Semantics (applied by query understanding):
+# - `terms` are what a shopper may type: words or phrases, matched as whole tokens,
+#   longest phrase first. A term belongs to exactly one entry.
+# - `english` are catalog-language equivalents. They are added alongside the typed term
+#   (never replacing it) to form one concept.
+
+schema_version = 1
+version = "hinglish-v1"
+
+[[entry]]
+group = "dairy"
+terms = ["doodh", "dudh", "dood"]
+english = ["milk"]
+
+[[entry]]
+group = "dairy"
+terms = ["dahi", "dahee"]
+english = ["curd"]
+
+[[entry]]
+group = "dairy"
+terms = ["panir"]
+english = ["paneer"]
+
+[[entry]]
+group = "dairy"
+terms = ["makhan", "makkhan"]
+english = ["butter"]
+
+[[entry]]
+group = "dairy"
+terms = ["malai"]
+english = ["cream"]
+
+[[entry]]
+group = "dairy"
+terms = ["ghi"]
+english = ["ghee"]
+
+[[entry]]
+group = "dairy"
+terms = ["chaas", "chhaas", "chhachh"]
+english = ["buttermilk"]
+
+[[entry]]
+group = "staples"
+terms = ["aata"]
+english = ["atta", "wheat flour"]
+
+[[entry]]
+group = "staples"
+terms = ["maida"]
+english = ["refined flour"]
+
+[[entry]]
+group = "staples"
+terms = ["suji", "sooji", "rava", "rawa"]
+english = ["semolina", "sooji", "rava"]
+
+[[entry]]
+group = "staples"
+terms = ["besan"]
+english = ["gram flour"]
+
+[[entry]]
+group = "staples"
+terms = ["chawal", "chaawal"]
+english = ["rice"]
+
+[[entry]]
+group = "staples"
+terms = ["pohe", "poha", "chivda rice"]
+english = ["poha", "flattened rice"]
+
+[[entry]]
+group = "staples"
+terms = ["murmura", "kurmura"]
+english = ["puffed rice"]
+
+[[entry]]
+group = "staples"
+terms = ["sabudana", "sabu dana"]
+english = ["sago"]
+
+[[entry]]
+group = "staples"
+terms = ["dalia", "daliya"]
+english = ["broken wheat"]
+
+[[entry]]
+group = "pulses"
+terms = ["daal", "dhal"]
+english = ["dal"]
+
+[[entry]]
+group = "pulses"
+terms = ["toor", "tuvar", "tur", "arhar"]
+english = ["toor", "arhar"]
+
+[[entry]]
+group = "pulses"
+terms = ["mung"]
+english = ["moong"]
+
+[[entry]]
+group = "pulses"
+terms = ["chana", "channa", "chane"]
+english = ["chana", "chickpea"]
+
+[[entry]]
+group = "pulses"
+terms = ["kabuli chana", "chole", "chhole"]
+english = ["chickpea", "kabuli"]
+
+[[entry]]
+group = "pulses"
+terms = ["masoor", "masur"]
+english = ["masoor", "red lentil"]
+
+[[entry]]
+group = "pulses"
+terms = ["urad", "udad"]
+english = ["urad"]
+
+[[entry]]
+group = "pulses"
+terms = ["rajma"]
+english = ["kidney beans"]
+
+[[entry]]
+group = "oils"
+terms = ["tel", "tael"]
+english = ["oil"]
+
+[[entry]]
+group = "oils"
+terms = ["sarson ka tel", "sarson tel", "sarso ka tel", "rai ka tel"]
+english = ["mustard oil"]
+
+[[entry]]
+group = "oils"
+terms = ["sarson", "sarso"]
+english = ["mustard"]
+
+[[entry]]
+group = "oils"
+terms = ["nariyal tel", "nariyal ka tel", "narial tel", "narial ka tel"]
+english = ["coconut oil"]
+
+[[entry]]
+group = "oils"
+terms = ["moongphali tel", "mungfali tel"]
+english = ["groundnut oil"]
+
+[[entry]]
+group = "oils"
+terms = ["til ka tel", "til tel"]
+english = ["sesame oil", "gingelly oil"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["namak", "nimak"]
+english = ["salt"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["kala namak"]
+english = ["black salt"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["sendha namak"]
+english = ["rock salt"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["cheeni", "chini"]
+english = ["sugar"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["gud", "gur"]
+english = ["jaggery"]
+
+[[entry]]
+group = "salt_sugar"
+terms = ["shahad", "shehad"]
+english = ["honey"]
+
+[[entry]]
+group = "spices"
+terms = ["haldi"]
+english = ["turmeric"]
+
+[[entry]]
+group = "spices"
+terms = ["mirch", "mirchi"]
+english = ["chilli", "chili"]
+
+[[entry]]
+group = "spices"
+terms = ["lal mirch"]
+english = ["red chilli"]
+
+[[entry]]
+group = "spices"
+terms = ["hari mirch"]
+english = ["green chilli"]
+
+[[entry]]
+group = "spices"
+terms = ["kali mirch"]
+english = ["black pepper"]
+
+[[entry]]
+group = "spices"
+terms = ["jeera", "jira"]
+english = ["cumin", "jeera"]
+
+[[entry]]
+group = "spices"
+terms = ["dhaniya", "dhania"]
+english = ["coriander"]
+
+[[entry]]
+group = "spices"
+terms = ["dhaniya patta", "hara dhaniya"]
+english = ["coriander leaves"]
+
+[[entry]]
+group = "spices"
+terms = ["elaichi", "ilaichi"]
+english = ["cardamom"]
+
+[[entry]]
+group = "spices"
+terms = ["laung", "lavang"]
+english = ["clove"]
+
+[[entry]]
+group = "spices"
+terms = ["dalchini"]
+english = ["cinnamon"]
+
+[[entry]]
+group = "spices"
+terms = ["rai"]
+english = ["mustard seeds"]
+
+[[entry]]
+group = "spices"
+terms = ["methi"]
+english = ["fenugreek", "methi"]
+
+[[entry]]
+group = "spices"
+terms = ["ajwain", "ajwayan"]
+english = ["carom", "ajwain"]
+
+[[entry]]
+group = "spices"
+terms = ["hing", "heeng"]
+english = ["asafoetida", "hing"]
+
+[[entry]]
+group = "spices"
+terms = ["saunf", "sonf"]
+english = ["fennel", "saunf"]
+
+[[entry]]
+group = "spices"
+terms = ["kesar"]
+english = ["saffron"]
+
+[[entry]]
+group = "spices"
+terms = ["imli"]
+english = ["tamarind"]
+
+[[entry]]
+group = "spices"
+terms = ["amchur", "amchoor"]
+english = ["mango powder", "amchur"]
+
+[[entry]]
+group = "spices"
+terms = ["tej patta"]
+english = ["bay leaf"]
+
+[[entry]]
+group = "vegetables"
+terms = ["pyaz", "pyaaz", "piyaz", "kanda"]
+english = ["onion"]
+
+[[entry]]
+group = "vegetables"
+terms = ["aloo", "alu"]
+english = ["potato"]
+
+[[entry]]
+group = "vegetables"
+terms = ["tamatar", "tamater"]
+english = ["tomato"]
+
+[[entry]]
+group = "vegetables"
+terms = ["adrak"]
+english = ["ginger"]
+
+[[entry]]
+group = "vegetables"
+terms = ["lehsun", "lahsun", "lasun", "lehson"]
+english = ["garlic"]
+
+[[entry]]
+group = "vegetables"
+terms = ["palak"]
+english = ["spinach"]
+
+[[entry]]
+group = "vegetables"
+terms = ["gobhi", "gobi", "phool gobhi", "phool gobi"]
+english = ["cauliflower"]
+
+[[entry]]
+group = "vegetables"
+terms = ["patta gobhi", "patta gobi", "bandh gobhi", "band gobhi"]
+english = ["cabbage"]
+
+[[entry]]
+group = "vegetables"
+terms = ["bhindi"]
+english = ["okra", "ladies finger"]
+
+[[entry]]
+group = "vegetables"
+terms = ["baingan", "baigan", "bengan"]
+english = ["brinjal", "eggplant"]
+
+[[entry]]
+group = "vegetables"
+terms = ["gajar"]
+english = ["carrot"]
+
+[[entry]]
+group = "vegetables"
+terms = ["matar", "mattar"]
+english = ["peas"]
+
+[[entry]]
+group = "vegetables"
+terms = ["kheera", "khira"]
+english = ["cucumber"]
+
+[[entry]]
+group = "vegetables"
+terms = ["lauki", "ghiya", "dudhi"]
+english = ["bottle gourd"]
+
+[[entry]]
+group = "vegetables"
+terms = ["karela"]
+english = ["bitter gourd"]
+
+[[entry]]
+group = "vegetables"
+terms = ["shimla mirch"]
+english = ["capsicum"]
+
+[[entry]]
+group = "vegetables"
+terms = ["pudina", "podina"]
+english = ["mint"]
+
+[[entry]]
+group = "vegetables"
+terms = ["mooli"]
+english = ["radish"]
+
+[[entry]]
+group = "vegetables"
+terms = ["shakarkandi"]
+english = ["sweet potato"]
+
+[[entry]]
+group = "vegetables"
+terms = ["kaddu", "kaddoo"]
+english = ["pumpkin"]
+
+[[entry]]
+group = "vegetables"
+terms = ["sahjan", "saijan"]
+english = ["drumstick"]
+
+[[entry]]
+group = "vegetables"
+terms = ["arbi"]
+english = ["colocasia"]
+
+[[entry]]
+group = "vegetables"
+terms = ["sabzi", "sabji", "subzi"]
+english = ["vegetables"]
+
+[[entry]]
+group = "fruits"
+terms = ["nimbu", "nimboo", "limbu"]
+english = ["lemon", "lime"]
+
+[[entry]]
+group = "fruits"
+terms = ["kela", "kele"]
+english = ["banana"]
+
+[[entry]]
+group = "fruits"
+terms = ["seb", "saeb"]
+english = ["apple"]
+
+[[entry]]
+group = "fruits"
+terms = ["aam"]
+english = ["mango"]
+
+[[entry]]
+group = "fruits"
+terms = ["angoor", "angur"]
+english = ["grapes"]
+
+[[entry]]
+group = "fruits"
+terms = ["santra", "santara"]
+english = ["orange"]
+
+[[entry]]
+group = "fruits"
+terms = ["anaar", "anar"]
+english = ["pomegranate"]
+
+[[entry]]
+group = "fruits"
+terms = ["papita"]
+english = ["papaya"]
+
+[[entry]]
+group = "fruits"
+terms = ["nariyal", "narial"]
+english = ["coconut"]
+
+[[entry]]
+group = "fruits"
+terms = ["chikoo", "chiku"]
+english = ["sapota"]
+
+[[entry]]
+group = "fruits"
+terms = ["amrood", "amrud"]
+english = ["guava"]
+
+[[entry]]
+group = "fruits"
+terms = ["tarbooz", "tarbuj"]
+english = ["watermelon"]
+
+[[entry]]
+group = "fruits"
+terms = ["phal"]
+english = ["fruits"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["kaju"]
+english = ["cashew"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["badam"]
+english = ["almond"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["kishmish"]
+english = ["raisins"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["akhrot"]
+english = ["walnut"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["pista"]
+english = ["pistachio"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["makhana", "phool makhana"]
+english = ["fox nut", "makhana"]
+
+[[entry]]
+group = "dry_fruits"
+terms = ["khajur", "khajoor"]
+english = ["dates"]
+
+[[entry]]
+group = "eggs_meat"
+terms = ["anda", "ande", "anday", "andey"]
+english = ["egg"]
+
+[[entry]]
+group = "eggs_meat"
+terms = ["murgi", "murga"]
+english = ["chicken"]
+
+[[entry]]
+group = "eggs_meat"
+terms = ["machhli", "machli", "machhi"]
+english = ["fish"]
+
+[[entry]]
+group = "eggs_meat"
+terms = ["gosht"]
+english = ["mutton"]
+
+[[entry]]
+group = "eggs_meat"
+terms = ["jhinga"]
+english = ["prawns"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["double roti", "dabal roti"]
+english = ["bread"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["pao"]
+english = ["pav"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["biskut", "biskit"]
+english = ["biscuit"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["sevai", "seviyan", "semiya", "sewai"]
+english = ["vermicelli"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["achaar", "achar"]
+english = ["pickle"]
+
+[[entry]]
+group = "bakery_snacks"
+terms = ["mithai"]
+english = ["sweets"]
+
+[[entry]]
+group = "beverages"
+terms = ["chai", "chaay"]
+english = ["tea"]
+
+[[entry]]
+group = "beverages"
+terms = ["chai patti", "chai ki patti", "chaipatti", "chai patta"]
+english = ["tea"]
+
+[[entry]]
+group = "beverages"
+terms = ["thanda"]
+english = ["cold drink", "soft drink"]
+
+[[entry]]
+group = "beverages"
+terms = ["pani", "paani"]
+english = ["water"]
+
+[[entry]]
+group = "beverages"
+terms = ["sharbat", "sherbet"]
+english = ["syrup"]
+
+[[entry]]
+group = "household"
+terms = ["sabun", "saabun"]
+english = ["soap"]
+
+[[entry]]
+group = "household"
+terms = ["kapde ka sabun", "kapde dhone ka sabun", "kapda sabun"]
+english = ["detergent"]
+
+[[entry]]
+group = "household"
+terms = ["bartan ka sabun", "bartan sabun", "bartan dhone ka sabun"]
+english = ["dishwash"]
+
+[[entry]]
+group = "household"
+terms = ["manjan", "dant manjan"]
+english = ["toothpaste", "tooth powder"]
+
+[[entry]]
+group = "household"
+terms = ["jhadu", "jhaadu"]
+english = ["broom"]
+
+[[entry]]
+group = "household"
+terms = ["pocha", "pochha"]
+english = ["mop"]
+
+[[entry]]
+group = "household"
+terms = ["agarbatti", "agarbathi"]
+english = ["incense"]
+
+[[entry]]
+group = "household"
+terms = ["maachis", "machis"]
+english = ["matchbox"]
