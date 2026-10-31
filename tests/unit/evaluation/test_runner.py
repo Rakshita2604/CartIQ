@@ -209,3 +209,21 @@ def test_rejects_output_beyond_the_limit() -> None:
 def test_needs_a_store() -> None:
     with pytest.raises(ValueError, match="at least one store"):
         evaluate(PIPELINE, JUDGMENTS, {})
+
+
+def test_available_zero_definition_is_omitted_unless_set() -> None:
+    import json
+
+    plain = evaluate(PIPELINE, JUDGMENTS, IN_STOCK)
+
+    @dataclass
+    class Labelled(FakePipeline):
+        available_zero_definition: str = "in-stock EXACT products (v2)"
+
+    labelled = evaluate(Labelled(PIPELINE.retrieved, PIPELINE.staged), JUDGMENTS, IN_STOCK)
+
+    assert "available_zero_definition" not in json.loads(plain.model_dump_json())
+    assert json.loads(labelled.model_dump_json())["available_zero_definition"] == (
+        "in-stock EXACT products (v2)"
+    )
+    assert "available zero = in-stock EXACT products (v2)" in format_report(labelled)

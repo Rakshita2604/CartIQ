@@ -60,6 +60,12 @@ two_edit_min_length = 8              # two edits allowed from this length
 dominance_ratio = 20.0               # known-but-rare token: add a neighbour with df >= 20x ...
 dominance_min_df = 5                 # ... and df >= 5
 bare_count_max = 50                  # trailing bare integer 2..50 = ambiguous count ("eggs 12")
+spelling_fields = ["name", "brand", "product_type"]   # spelling targets (4b: no descriptions)
+brand_min_share = 0.5                # one-word brand only if >= 50% of products with the word carry it
+
+[ranking]
+candidate_depth = 100                # s6: store-eligible BM25F candidates reordered exact-first
+coverage_fields = ["name", "brand", "product_type"]  # s6: fields that make a match exact
 
 [evaluation]
 judgments_file = "eval/judgments/synthetic-v1.toml"

@@ -14,6 +14,7 @@ from cartiq.domain.evaluation import (
 from cartiq.domain.inventory import StockRecord, Store
 from cartiq.domain.orders import Order, OrderLine, User
 from cartiq.domain.search import (
+    Alternative,
     Candidate,
     ConceptTerm,
     Constraint,
@@ -32,6 +33,7 @@ from cartiq.domain.search import (
 
 __all__ = [
     "SEGMENT_ATTRIBUTE",
+    "Alternative",
     "Candidate",
     "ConceptTerm",
     "Constraint",

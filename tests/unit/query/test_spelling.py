@@ -3,7 +3,8 @@ import pytest
 from cartiq.config import BM25Settings, QuerySettings
 from cartiq.domain import CorrectionReason, Product
 from cartiq.query.lexicon import load_lexicon
-from cartiq.query.spelling import SpellingCorrector, osa_distance
+from cartiq.query.spelling import SpellingCorrector
+from cartiq.query.spelling_distance import osa_distance
 from cartiq.retrieval import BM25FIndex
 
 SETTINGS = QuerySettings()
@@ -125,3 +126,122 @@ DO_NOT_CORRECT = ["chicken", "iphone", "dahi", "pizza", "vodka", "laptop", "gara
 @pytest.mark.parametrize("word", DO_NOT_CORRECT)
 def test_do_not_correct(synthetic_speller: SpellingCorrector, word: str) -> None:
     assert synthetic_speller.correct(word) is None
+
+
+class TestSpellingVocabulary:
+    @staticmethod
+    def product(
+        pid: str, name: str, brand: str | None, path: tuple[str, ...], desc: str
+    ) -> Product:
+        from decimal import Decimal
+
+        return Product(pid, name, path, Decimal(10), brand=brand, description=desc)
+
+    def test_counts_name_brand_and_product_type_only(self) -> None:
+        from cartiq.query.spelling import spelling_frequencies
+
+        products = [
+            self.product(
+                "P1",
+                "Coca-Cola Coke Zero",
+                "Coca-Cola",
+                ("Beverages", "Soft Drinks", "Cold Drinks"),
+                "Comes chilled; come and get it",
+            ),
+            self.product("P2", "Cold Coffee", None, ("Beverages", "Soft Drinks", "Coffee"), "come"),
+        ]
+
+        df = spelling_frequencies(products, ("name", "brand", "product_type"))
+
+        assert df["coke"] == 1
+        assert df["coca"] == 1  # brand field (also stripped from the name prefix)
+        assert df["cold"] == 2  # P1 product type, P2 name
+        assert df["drinks"] == 1
+        assert "come" not in df  # description only
+        assert "soft" not in df  # sub-category only
+        assert "beverages" not in df  # top-level category
+
+    def test_description_only_words_are_never_targets(self) -> None:
+        from cartiq.query.spelling import spelling_frequencies
+
+        products = [
+            self.product(f"P{i}", "Coke Zero", "Coca-Cola", ("Drinks", "Cola"), "come home")
+            for i in range(40)
+        ]
+        restricted = SpellingCorrector(
+            spelling_frequencies(products, ("name", "brand", "product_type")), (), SETTINGS
+        )
+        everything = SpellingCorrector(
+            spelling_frequencies(
+                products, ("name", "brand", "product_type", "sub_category", "description")
+            ),
+            (),
+            SETTINGS,
+        )
+
+        assert "come" in everything.candidates("cme")
+        assert "come" not in restricted.candidates("cme")
+        assert restricted.correct("comee") is None  # its only 1-edit target was "come"
+
+    def test_candidates_are_the_unverified_lookup_set(self) -> None:
+        speller = corrector({"maggi": 4, "magic": 3, "mango": 9})
+
+        assert speller.candidates("magii") >= {"maggi", "magic"}
+        assert speller.candidates("tee") == frozenset()  # too short: no lookup
+
+
+class TestBrandFirstTieBreak:
+    def test_brand_word_wins_among_equally_close_candidates(self) -> None:
+        df = {"maggi": 4, "magic": 30}
+
+        assert corrector(df).correct("magii").corrected == "magic"  # type: ignore[union-attr]
+        preferring = SpellingCorrector(df, (), SETTINGS, preferred=("maggi",))
+        assert preferring.correct("magii").corrected == "maggi"  # type: ignore[union-attr]
+
+    def test_a_closer_non_brand_candidate_still_wins(self) -> None:
+        df = {"tomato": 9, "tamatos": 1}
+        speller = SpellingCorrector(df, (), SETTINGS, preferred=("tamatos",))
+
+        assert speller.correct("tomatto").corrected == "tomato"  # type: ignore[union-attr]
+
+    def test_dominance_rule_is_unchanged_by_preference(self) -> None:
+        df = {"panner": 1, "paneer": 40, "panter": 40}
+        speller = SpellingCorrector(df, (), SETTINGS, preferred=("panter",))
+
+        assert speller.correct("panner").corrected == "paneer"  # type: ignore[union-attr]
+
+
+MAGII_TARGETS = {"maggi": 33, "magic": 190, "magix": 41, "magik": 1}  # BigBasket counts
+
+
+class TestPhoneticTieBreak:
+    def test_phonetic_breaks_ties_after_brand_preference(self) -> None:
+        all_brand = SpellingCorrector(
+            MAGII_TARGETS, (), SETTINGS, preferred=("maggi", "magic", "magix"), phonetic=True
+        )
+
+        assert all_brand.correct("magii").corrected == "maggi"  # type: ignore[union-attr]
+
+    def test_brand_preference_still_comes_first(self) -> None:
+        only_magic = SpellingCorrector(
+            MAGII_TARGETS, (), SETTINGS, preferred=("magic",), phonetic=True
+        )
+
+        assert only_magic.correct("magii").corrected == "magic"  # type: ignore[union-attr]
+
+    def test_frequency_then_alphabet_follow(self) -> None:
+        # "magic" and "magix" sound alike (M220): frequency decides; equal df: alphabetical.
+        speller = SpellingCorrector({"magic": 5, "magix": 9}, (), SETTINGS, phonetic=True)
+        assert speller.correct("magiq").corrected == "magix"  # type: ignore[union-attr]
+        tied = SpellingCorrector({"magic": 5, "magix": 5}, (), SETTINGS, phonetic=True)
+        assert tied.correct("magiq").corrected == "magic"  # type: ignore[union-attr]
+
+    def test_off_by_default(self) -> None:
+        assert SpellingCorrector(MAGII_TARGETS, (), SETTINGS).correct("magii").corrected == "magic"  # type: ignore[union-attr]
+
+    def test_never_overrides_edit_distance(self) -> None:
+        speller = SpellingCorrector(
+            {"magii": 0, "maggies": 50, "mangi": 2}, (), SETTINGS, phonetic=True
+        )
+
+        assert speller.correct("magie").corrected == "magii"  # type: ignore[union-attr]

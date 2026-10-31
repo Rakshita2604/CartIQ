@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from statistics import fmean
 from typing import Protocol
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from cartiq.domain import Coverage, Grade, JudgedQuery, QueryAttribute, QuerySegment
 from cartiq.evaluation.judgments import JudgmentSet
@@ -112,6 +112,10 @@ class EvalReport(_Frozen):
     warnings: list[str]
     to_label: dict[str, list[str]]  # query id -> unjudged products that were shown
     queries: list[QueryResult]
+    # Set only by pipelines that redefine "available" (s6: in-stock EXACT products, v2).
+    # Omitted from JSON when unset, so earlier reports stay byte-identical (v1 semantics:
+    # in-stock matches).
+    available_zero_definition: str | None = Field(default=None, exclude_if=lambda v: v is None)
 
 
 def evaluate(
@@ -155,6 +159,7 @@ def evaluate(
         warnings=_rate_warnings(overall),
         to_label={r.query_id: r.unjudged_in_results for r in results if r.unjudged_in_results},
         queries=results,
+        available_zero_definition=getattr(pipeline, "available_zero_definition", None),
     )
 
 
@@ -178,6 +183,8 @@ def format_report(report: EvalReport) -> str:
         header,
         "-" * len(header),
     ]
+    if report.available_zero_definition:
+        lines.insert(1, f"available zero = {report.available_zero_definition}")
     for name, s in rows:
         mark = "~" if s.partial_queries else " "
         recalls = "".join(f" {_fmt(s.recall[depth]):>6}" for depth in report.recall_at)

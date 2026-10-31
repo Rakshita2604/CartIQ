@@ -10,21 +10,40 @@ Rules, fixed in the Phase 4 design:
 - Tokens shorter than ``one_edit_min_length``, tokens containing a digit, and lexicon terms
   are never corrected.
 - Allowed distance: 1 from ``one_edit_min_length``, 2 from ``two_edit_min_length``.
-- Unknown token (not a target term): the nearest target wins, ties broken by higher
-  document frequency, then alphabetically.
+- Unknown token (not a target term): the nearest target wins. Among targets at that same
+  minimum distance, ``preferred`` terms (catalog-brand words, Phase 4b) come first; then,
+  when ``phonetic`` is on, the target that sounds most like the token (Soundex code
+  distance, see ``phonetic``); then higher document frequency; then alphabetical order.
 - Known but rare token (real catalogs contain misspellings, e.g. "panner"): a one-edit
   neighbour is added only if it dominates: df >= ``dominance_ratio`` x the token's df and
   df >= ``dominance_min_df``.
 
 Corrections are always added alongside the typed token, never replacing it, and are
 recorded on the parsed query.
+
+The target vocabulary comes from ``spelling_frequencies``: by default only product name,
+brand and product type. Words that occur only in descriptions or category text ("comes
+with ...") are never targets, and their frequencies cannot make a neighbour "dominant".
 """
 
-from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections import Counter, defaultdict
+from collections.abc import Collection, Iterable, Mapping
 
 from cartiq.config import QuerySettings
-from cartiq.domain import Correction, CorrectionReason
+from cartiq.domain import Correction, CorrectionReason, Product
+from cartiq.query.phonetic import phonetic_distance
+from cartiq.query.spelling_distance import osa_distance
+from cartiq.retrieval.documents import Field, product_fields
+
+
+def spelling_frequencies(products: Iterable[Product], fields: Collection[str]) -> dict[str, int]:
+    """Document frequency of each word over the given product fields only."""
+    selected = [Field(name) for name in fields]
+    counts: Counter[str] = Counter()
+    for product in products:
+        document = product_fields(product)
+        counts.update({token for field in selected for token in document[field]})
+    return dict(counts)
 
 
 class SpellingCorrector:
@@ -33,11 +52,17 @@ class SpellingCorrector:
         document_frequency: Mapping[str, int],
         protected: Iterable[str],
         settings: QuerySettings,
+        preferred: Iterable[str] = (),
+        *,
+        phonetic: bool = False,
     ) -> None:
-        """``document_frequency`` covers the catalog vocabulary; ``protected`` terms (the
-        lexicon's) are valid targets with df 0 and are never corrected themselves."""
+        """``document_frequency`` is the target vocabulary (see ``spelling_frequencies``);
+        ``protected`` terms (the lexicon's) are valid targets with df 0 and are never
+        corrected themselves."""
         self._df = dict(document_frequency)
         self._protected = frozenset(protected)
+        self._preferred = frozenset(preferred)
+        self._phonetic = phonetic
         self._settings = settings
         self._deletes: defaultdict[str, set[str]] = defaultdict(set)
         for term in sorted(self._df.keys() | self._protected):
@@ -54,7 +79,13 @@ class SpellingCorrector:
             return self._dominant_neighbour(token)
         best = min(
             (
-                (distance, -self._df.get(term, 0), term)
+                (
+                    distance,
+                    term not in self._preferred,
+                    phonetic_distance(token, term) if self._phonetic else 0,
+                    -self._df.get(term, 0),
+                    term,
+                )
                 for term in self._candidates(token, max_distance)
                 if (distance := osa_distance(token, term)) <= max_distance
             ),
@@ -62,7 +93,7 @@ class SpellingCorrector:
         )
         if best is None:
             return None
-        return Correction(token, best[2], best[0], CorrectionReason.UNKNOWN)
+        return Correction(token, best[-1], best[0], CorrectionReason.UNKNOWN)
 
     def _dominant_neighbour(self, token: str) -> Correction | None:
         floor = max(
@@ -79,6 +110,11 @@ class SpellingCorrector:
         if not dominant:
             return None
         return Correction(token, min(dominant)[1], 1, CorrectionReason.DOMINANT)
+
+    def candidates(self, token: str) -> frozenset[str]:
+        """Target terms sharing a delete-variant with ``token`` at its allowed distance,
+        before distance verification (the lookup's work, for measurement and tests)."""
+        return frozenset(self._candidates(token, self._max_distance(len(token))))
 
     def _candidates(self, token: str, max_distance: int) -> set[str]:
         found: set[str] = set()
@@ -101,21 +137,6 @@ class SpellingCorrector:
         if length >= self._settings.one_edit_min_length - 1:
             return 1
         return 0
-
-
-def osa_distance(a: str, b: str) -> int:
-    """Optimal string alignment distance (Damerau-Levenshtein without repeated edits)."""
-    previous2: list[int] = []
-    previous = list(range(len(b) + 1))
-    for i in range(1, len(a) + 1):
-        current = [i, *([0] * len(b))]
-        for j in range(1, len(b) + 1):
-            cost = 0 if a[i - 1] == b[j - 1] else 1
-            current[j] = min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost)
-            if i > 1 and j > 1 and a[i - 1] == b[j - 2] and a[i - 2] == b[j - 1]:
-                current[j] = min(current[j], previous2[j - 2] + 1)
-        previous2, previous = previous, current
-    return previous[-1]
 
 
 def _deletes(term: str, depth: int) -> set[str]:

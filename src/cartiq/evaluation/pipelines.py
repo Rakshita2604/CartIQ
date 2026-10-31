@@ -4,16 +4,16 @@ results are the in-stock matches."""
 
 import hashlib
 import json
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict
+from collections.abc import Collection, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 
-from cartiq.config import BM25Settings, QuerySettings
-from cartiq.domain import ParsedQuery, Product
+from cartiq.config import BM25Settings, QuerySettings, RankingSettings
+from cartiq.domain import Candidate, MatchTier, ParsedQuery, Product, ScoredProduct
 from cartiq.evaluation.runner import StagedResults
 from cartiq.parsing.text import tokenize
-from cartiq.query import QueryParser, Stages
-from cartiq.query.lexicon import load_lexicon
-from cartiq.query.parser import PARSER_VERSION
+from cartiq.query import Stages
+from cartiq.query.factory import build_parser, parser_identity
+from cartiq.ranking import CoverageIndex, order
 from cartiq.retrieval import BM25FIndex, bm25_config_id
 
 
@@ -80,8 +80,38 @@ class BM25Pipeline:
         return StagedResults(available=available, final=available)
 
 
+AVAILABLE_ZERO_EXACT = (
+    "in-stock EXACT products (v2): a store counts as available-zero when none of its in-stock "
+    "results satisfies every constraint, even if RELAXED results are still shown (final-zero "
+    "counts those)"
+)
+
+
+@dataclass(frozen=True, slots=True)
+class OrderedResults:
+    """Constraint-first results for one query and (optional) store, with candidate counts."""
+
+    scored: tuple[ScoredProduct, ...]  # EXACT first, then RELAXED, each in BM25 order
+    # Eligible products with a score above zero before the depth cut; None unless requested
+    # (counting them costs a full search, so the search path never does).
+    eligible_matches: int | None = None
+
+    @property
+    def exact(self) -> list[str]:
+        return [s.product_id for s in self.scored if s.tier is MatchTier.EXACT]
+
+    @property
+    def relaxed(self) -> list[str]:
+        return [s.product_id for s in self.scored if s.tier is MatchTier.RELAXED]
+
+
 class UnderstandingPipeline:
-    """BM25F over the concepts produced by query understanding (Phase 4a stages)."""
+    """BM25F over the concepts produced by query understanding (Phase 4 stages s1-s6).
+
+    With ``stages.ordering`` (s6) each store's search takes its ``candidate_depth`` best
+    eligible BM25F candidates and puts EXACT ones (every stated constraint satisfied) before
+    RELAXED ones; ``available`` is then the EXACT list. ``retrieve`` is always plain BM25F.
+    """
 
     def __init__(
         self,
@@ -91,26 +121,30 @@ class UnderstandingPipeline:
         query: QuerySettings,
         stage: str,
         stages: Stages,
+        ranking: RankingSettings | None = None,
     ) -> None:
+        products = list(products)
+        self._products = {product.product_id: product for product in products}
         self._index = BM25FIndex.build(products, bm25)
-        lexicon = load_lexicon(query.lexicon)
-        frequencies = {
-            term: self._index.document_frequency(term) for term in self._index.vocabulary
-        }
-        self._parser = QueryParser(frequencies, lexicon, query, stages)
+        self._parser = build_parser(products, self._index.vocabulary, query, stages)
         self._in_stock = in_stock
         self._parsed: dict[str, ParsedQuery] = {}
-        identity = json.dumps(
-            {
-                "bm25": bm25_config_id(bm25),
-                "parser": PARSER_VERSION,
-                "lexicon": lexicon.sha256,
-                "query": query.model_dump(mode="json"),
-                "stages": asdict(stages),
-            },
-            sort_keys=True,
+        self._ordering = stages.ordering
+        ranking = ranking or RankingSettings()
+        self._candidate_depth = ranking.candidate_depth
+        self._coverage = (
+            CoverageIndex(products, ranking.coverage_fields) if stages.ordering else None
         )
+        payload = {"bm25": bm25_config_id(bm25), **parser_identity(query, stages)}
+        if stages.ordering:
+            payload["candidate_depth"] = self._candidate_depth
+            payload["coverage"] = {
+                "rule": "all-slots-of-an-alternative-v2",
+                "fields": list(ranking.coverage_fields),
+            }
+        identity = json.dumps(payload, sort_keys=True)
         self.name = f"qu-{stage}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}"
+        self.available_zero_definition = AVAILABLE_ZERO_EXACT if stages.ordering else None
 
     def parse(self, query: str) -> ParsedQuery:
         if query not in self._parsed:
@@ -123,7 +157,50 @@ class UnderstandingPipeline:
 
     def search(self, query: str, store_id: str, limit: int) -> StagedResults:
         allowed = self._in_stock.get(store_id, frozenset())
+        if self._ordering:
+            ordered = self.ordered(query, allowed)
+            final = [s.product_id for s in ordered.scored][:limit]
+            return StagedResults(available=ordered.exact[:limit], final=final)
         concepts = self.parse(query).concepts
         found = self._index.search_concepts(concepts, limit, allowed=allowed)
         available = [candidate.product_id for candidate in found]
         return StagedResults(available=available, final=available)
+
+    def ordered(
+        self, query: str, allowed: Collection[str] | None = None, *, count_matches: bool = False
+    ) -> OrderedResults:
+        """Constraint-first ordering of the ``candidate_depth`` best eligible candidates;
+        ``allowed=None`` means the whole catalog."""
+        parsed = self.parse(query)
+        candidates = self._index.search_concepts(
+            parsed.concepts, self._candidate_depth, allowed=allowed
+        )
+        scored = self._order(parsed, candidates)
+        matches = None
+        if count_matches:
+            matches = (
+                len(candidates)
+                if len(candidates) < self._candidate_depth
+                else self._index.match_count(parsed.concepts, allowed)
+            )
+        return OrderedResults(tuple(scored), matches)
+
+    def beyond_depth_exact(self, query: str, allowed: Collection[str] | None = None) -> int:
+        """EXACT products ranked past ``candidate_depth`` (which S6 cannot promote). For
+        evaluation only: it scores every match."""
+        parsed = self.parse(query)
+        everything = self._index.search_concepts(
+            parsed.concepts, max(len(self._products), 1), allowed=allowed
+        )
+        beyond = everything[self._candidate_depth :]
+        if not beyond:
+            return 0
+        return sum(s.tier is MatchTier.EXACT for s in self._order(parsed, beyond))
+
+    def _order(self, parsed: ParsedQuery, candidates: Sequence[Candidate]) -> list[ScoredProduct]:
+        if self._coverage is None:
+            raise RuntimeError("constraint ordering needs the ordering stage (s6)")
+        ids = [candidate.product_id for candidate in candidates]
+        coverage = self._coverage.covered(parsed.concepts, ids)
+        required = self._coverage.coverable(parsed.concepts) - set(parsed.brand_concepts)
+        return order(candidates, self._products, parsed, coverage, required)

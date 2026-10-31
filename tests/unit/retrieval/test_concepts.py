@@ -133,3 +133,10 @@ def test_explain_reports_each_concept_and_sums_to_the_score() -> None:
 def test_concepts_matching_nothing_return_nothing() -> None:
     assert index().search_concepts([QueryConcept.single("zzz")], 10) == []
     assert index().search_concepts([], 10) == []
+
+
+def test_match_count() -> None:
+    concepts = [QueryConcept.single("a"), QueryConcept.single("zzz")]
+
+    assert index().match_count(concepts) == 2
+    assert index().match_count(concepts, allowed={"d1"}) == 1

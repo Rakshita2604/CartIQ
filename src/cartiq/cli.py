@@ -1,6 +1,8 @@
 """Command-line entry point for the API server and offline jobs (snapshots, evaluation)."""
 
 import contextlib
+import hashlib
+import json
 import logging
 import statistics
 import time
@@ -27,12 +29,16 @@ from cartiq.evaluation import (
 )
 from cartiq.evaluation.compare import IncomparableReportsError, format_comparison
 from cartiq.evaluation.pipelines import BM25Pipeline, TokenOverlapPipeline, UnderstandingPipeline
+from cartiq.evaluation.qu_eval import evaluate_suite, format_suite_report, load_expectations
 from cartiq.evaluation.runner import EvalReport
+from cartiq.evaluation.tiers import TierQuery, evaluate_tiers, format_tiers_report
 from cartiq.ingestion.bigbasket import read_bigbasket_csv
 from cartiq.ingestion.raw import RawCatalogRow
 from cartiq.ingestion.synthetic import SYNTHETIC_CATALOG_VERSION, synthetic_catalog_rows
-from cartiq.query import STAGES, QueryParser
-from cartiq.query.lexicon import load_lexicon
+from cartiq.parsing.text import tokenize
+from cartiq.query import STAGES
+from cartiq.query.factory import build_parser, parser_identity
+from cartiq.query.spelling import spelling_frequencies
 from cartiq.retrieval import BM25FIndex, bm25_config_id
 from cartiq.snapshots import (
     DB_FILENAME,
@@ -67,6 +73,8 @@ class StageChoice(StrEnum):
     S2 = "s2"  # + Hinglish lexicon
     S3 = "s3"  # + spelling correction
     S4 = "s4"  # + plural variants
+    S5 = "s5"  # + brand and alias recognition, spelling protection
+    S6 = "s6"  # + constraint-first ordering (EXACT before RELAXED)
 
 
 @app.command()
@@ -193,6 +201,7 @@ def evaluate_command(
             settings.query,
             stage.value,
             STAGES[stage.value],
+            settings.ranking,
         )
     else:
         pipeline = TokenOverlapPipeline(products, in_stock)
@@ -312,13 +321,13 @@ def bench_query_command(
     depth, limit = max(settings.evaluation.recall_at), settings.evaluation.k
 
     index = BM25FIndex.build(products, settings.retrieval.bm25)
-    frequencies = {term: index.document_frequency(term) for term in index.vocabulary}
-    lexicon = load_lexicon(settings.query.lexicon)
+    spelling_df = spelling_frequencies(products, settings.query.spelling_fields)
+    stages = STAGES[stage.value]
     started = time.perf_counter()
-    parser = QueryParser(frequencies, lexicon, settings.query, STAGES[stage.value])
+    parser = build_parser(products, index.vocabulary, settings.query, stages)
     build_ms = (time.perf_counter() - started) * 1000
     tracemalloc.start()
-    QueryParser(frequencies, lexicon, settings.query, STAGES[stage.value])
+    build_parser(products, index.vocabulary, settings.query, stages)
     peak_mb = tracemalloc.get_traced_memory()[1] / 2**20
     tracemalloc.stop()
 
@@ -339,11 +348,62 @@ def bench_query_command(
                 timed(partial(index.search_concepts, concepts, limit, stocked))
                 for stocked in in_stock.values()
             ]
+    if stages.ordering:
+        pipeline = UnderstandingPipeline(
+            products,
+            in_stock,
+            settings.retrieval.bm25,
+            settings.query,
+            stage.value,
+            stages,
+            settings.ranking,
+        )
+        for query in queries:  # warm the parse cache: time ordering, not parsing
+            pipeline.parse(query)
+        ordered_ms = [
+            timed(partial(pipeline.search, query, store_id, limit))
+            for _ in range(repeat)
+            for query in queries
+            for store_id in in_stock
+        ]
+        p50 = statistics.median(ordered_ms)
+        p95 = statistics.quantiles(ordered_ms, n=100, method="inclusive")[94]
+        typer.echo(
+            f"store search with ordering (depth {settings.ranking.candidate_depth} -> limit "
+            f"{limit}): n={len(ordered_ms)} p50={p50:.3f} ms p95={p95:.3f} ms"
+        )
     plain_zero = sum(not index.search(query, depth) for query in queries)
     stage_zero = sum(not index.search_concepts(parser.parse(q).concepts, depth) for q in queries)
 
     typer.echo(f"snapshot {snapshot_id}: {len(index)} products, stage {stage.value}")
-    typer.echo(f"parser build (incl. spelling index): {build_ms:.0f} ms, peak {peak_mb:.1f} MiB")
+    typer.echo(
+        f"vocabulary: retrieval {len(index.vocabulary)} terms; spelling "
+        f"{len(spelling_df)} terms from {list(settings.query.spelling_fields)}"
+    )
+    typer.echo(
+        f"parser build (word list, spelling index, brands): {build_ms:.0f} ms, "
+        f"peak {peak_mb:.1f} MiB"
+    )
+    if parser.speller is not None:
+        looked_up = sorted({t for q in queries for t in tokenize(q)})
+        sizes = [len(parser.speller.candidates(t)) for t in looked_up]
+        typer.echo(
+            f"correction candidates per workload token: n={len(sizes)} "
+            f"mean={statistics.fmean(sizes):.1f} max={max(sizes)}"
+        )
+        corrections = sorted(
+            {
+                f"{fix.original}->{fix.corrected} ({fix.reason.value})"
+                for q in queries
+                for fix in parser.parse(q).corrections
+            }
+        )
+        typer.echo(f"corrections on workload ({len(corrections)}): {', '.join(corrections)}")
+    if stages.brands:
+        brands = sorted({f"{q!r}->{p.brand}" for q in queries if (p := parser.parse(q)).brand})
+        notes = sorted({n for q in queries for n in parser.parse(q).brand_notes})
+        typer.echo(f"brands recognised on workload ({len(brands)}): {', '.join(brands)}")
+        typer.echo(f"brand notes ({len(notes)}): {' | '.join(notes) or '-'}")
     for label, samples in (
         ("parse", parse_ms),
         ("parse + catalog search, search part", catalog_ms),
@@ -356,3 +416,104 @@ def bench_query_command(
         f"catalog zero-result over {len(queries)} dev query texts: plain BM25F {plain_zero}, "
         f"{stage.value} {stage_zero}"
     )
+
+
+@app.command("evaluate-qu")
+def evaluate_qu_command(
+    snapshot_id: str,
+    stage: Annotated[StageChoice, typer.Option(help="Query-understanding stage.")] = (
+        StageChoice.S5
+    ),
+    expectations: Annotated[Path, typer.Option(help="Expectations file.")] = Path(
+        "eval/query_understanding/synthetic-v1.toml"
+    ),
+) -> None:
+    """Score query understanding (quantity, brand, spelling) against hand-written
+    expectations for the snapshot's catalog. Development queries only."""
+    settings = Settings()
+    manifest, products, _ = _load_snapshot(settings, snapshot_id)
+    document, sha256 = load_expectations(expectations)
+    fingerprint = catalog_fingerprint(products)
+    suites = [s for s in document.suite if s.catalog == manifest.source.name]
+    if not suites or suites[0].catalog_sha256 != fingerprint:
+        typer.echo(
+            f"FAILED: no suite for catalog {manifest.source.name!r} with fingerprint {fingerprint}",
+            err=True,
+        )
+        raise typer.Exit(1)
+    index = BM25FIndex.build(products, settings.retrieval.bm25)
+    stages = STAGES[stage.value]
+    parser = build_parser(products, index.vocabulary, settings.query, stages)
+    identity = json.dumps(
+        {
+            "bm25": bm25_config_id(settings.retrieval.bm25),
+            **parser_identity(settings.query, stages),
+        },
+        sort_keys=True,
+    )
+    pipeline = f"qu-{stage.value}-{hashlib.sha256(identity.encode()).hexdigest()[:12]}"
+    workload = [q.text for q in load_judgments(settings.evaluation.judgments_file).queries]
+    report = evaluate_suite(
+        suites[0], parser.parse, workload, pipeline=pipeline, expectations_sha256=sha256
+    )
+    path = (
+        settings.paths.artifacts_dir
+        / "eval-qu"
+        / snapshot_id
+        / f"{pipeline}-{suites[0].name}-{sha256[:12]}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(report.model_dump_json(indent=2) + "\n")
+    typer.echo(format_suite_report(report))
+    typer.echo(f"report: {path}")
+
+
+@app.command("evaluate-tiers")
+def evaluate_tiers_command(
+    snapshot_id: str,
+    stage: Annotated[StageChoice, typer.Option(help="Stage with ordering.")] = StageChoice.S6,
+    judgments_path: Annotated[
+        Path | None,
+        typer.Option("--judgments", help="Judgment file (defaults to evaluation.judgments_file)."),
+    ] = None,
+) -> None:
+    """EXACT-tier precision/recall against grade-3 labels, and exact/relaxed/candidate
+    counts. Without labels for this catalog, counts only (query texts from the file)."""
+    settings = Settings()
+    manifest, products, in_stock = _load_snapshot(settings, snapshot_id)
+    if not STAGES[stage.value].ordering:
+        raise typer.BadParameter("tiers exist only with ordering (s6)", param_hint="--stage")
+    judgments = load_judgments(judgments_path or settings.evaluation.judgments_file)
+    labelled = (
+        judgments.catalog == manifest.source.name
+        and judgments.catalog_sha256 == catalog_fingerprint(products)
+    )
+    pipeline = UnderstandingPipeline(
+        products,
+        in_stock,
+        settings.retrieval.bm25,
+        settings.query,
+        stage.value,
+        STAGES[stage.value],
+        settings.ranking,
+    )
+    report = evaluate_tiers(
+        pipeline,
+        [TierQuery(q.query_id, q.text, q if labelled else None) for q in judgments.queries],
+        {product.product_id: product for product in products},
+        snapshot_id=snapshot_id,
+        judgments_sha256=judgments.sha256,
+        candidate_depth=settings.ranking.candidate_depth,
+        k=settings.evaluation.k,
+    )
+    suffix = judgments.sha256[:12] if labelled else "unlabelled"
+    path = (
+        settings.paths.artifacts_dir
+        / "eval-tiers"
+        / snapshot_id
+        / f"{report.pipeline}-{suffix}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(report.model_dump_json(indent=2) + "\n")
+    typer.echo(format_tiers_report(report))
+    typer.echo(f"report: {path}")

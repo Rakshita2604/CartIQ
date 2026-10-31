@@ -45,6 +45,15 @@ def format_comparison(before: EvalReport, after: EvalReport, *, min_delta: float
         f"stores={len(before.stores)}",
         "",
     ]
+    v1 = "in-stock matches (v1)"
+    definitions = [r.available_zero_definition or v1 for r in (before, after)]
+    if definitions[0] != definitions[1]:
+        lines += [
+            "NOTE: available zero-result is defined differently in the two reports:",
+            f"  before: {definitions[0]}",
+            f"  after:  {definitions[1]}",
+            "",
+        ]
     lines += _group_table(before, after)
     lines += ["", f"Per-query NDCG@{before.k} changes (|delta| > 0):"]
     changes = sorted(

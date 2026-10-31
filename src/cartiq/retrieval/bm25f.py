@@ -230,6 +230,12 @@ class BM25FIndex:
             for rank, position in enumerate(top.tolist(), start=1)
         ]
 
+    def match_count(
+        self, concepts: Sequence[QueryConcept], allowed: Collection[str] | None = None
+    ) -> int:
+        """Number of (eligible) products with a score above zero, before any depth cut."""
+        return len(self.search_concepts(concepts, max(len(self._product_ids), 1), allowed))
+
     def explain(
         self, concepts: Sequence[QueryConcept], product_id: str
     ) -> tuple[ConceptExplanation, ...]:

@@ -15,6 +15,7 @@ class Constraint(StrEnum):
     BRAND = "brand"
     QUANTITY = "quantity"
     CATEGORY = "category"
+    PRODUCT = "product"  # a matchable non-brand concept of the query is not matched
 
 
 class MatchTier(StrEnum):
@@ -43,6 +44,7 @@ class TermSource(StrEnum):
     LEXICON = "lexicon"
     SPELLING = "spelling"
     INFLECTION = "inflection"
+    BRAND = "brand"  # catalog spelling of a recognised brand alias or variant
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,26 +59,47 @@ class ConceptTerm:
             raise ValueError("ConceptTerm.weight must be in (0, 1]")
 
 
+Slot = frozenset[str]  # accepted forms of one word ("oil" or its plural "oils")
+Alternative = tuple[Slot, ...]  # one phrase as ordered word slots
+
+
 @dataclass(frozen=True, slots=True)
 class QueryConcept:
-    """One unit of meaning in a query: alternative terms that all express it.
+    """One unit of meaning in a query.
 
-    Retrieval sums the weighted term frequencies of a concept's terms and saturates once,
-    so synonyms of one concept are never counted as independent matches.
+    ``terms`` are what retrieval scores: their weighted term frequencies are summed and
+    saturated once, so synonyms of one concept never count as independent matches.
+
+    ``alternatives`` say what it takes to *contain* the concept (for exact matching): the
+    phrases that express it, each as ordered word slots. A product contains the concept when
+    every slot of at least one alternative is present ("sarson ka tel" = ("sarson", "tel")
+    or ("mustard", "oil"|"oils")), so a multi-word phrase is never satisfied by one of its
+    words. Empty means one single-word alternative per term.
     """
 
     text: str  # what the shopper typed for this concept, e.g. "sarson ka tel"
     terms: tuple[ConceptTerm, ...]
+    alternatives: tuple[Alternative, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.terms:
             raise ValueError("QueryConcept needs at least one term")
         if len({term.term for term in self.terms}) != len(self.terms):
             raise ValueError("QueryConcept terms must be unique")
+        for alternative in self.alternatives:
+            if not alternative or any(not slot for slot in alternative):
+                raise ValueError("QueryConcept alternatives need non-empty word slots")
 
     @classmethod
     def single(cls, term: str) -> "QueryConcept":
-        return cls(term, (ConceptTerm(term, TermSource.QUERY),))
+        return cls(term, (ConceptTerm(term, TermSource.QUERY),), ((frozenset({term}),),))
+
+    @property
+    def phrases(self) -> tuple[Alternative, ...]:
+        """``alternatives``, or one single-word alternative per term when none are given."""
+        if self.alternatives:
+            return self.alternatives
+        return tuple((frozenset({term.term}),) for term in self.terms)
 
 
 class CorrectionReason(StrEnum):
@@ -138,7 +161,10 @@ class ParsedQuery:
     concepts: tuple[QueryConcept, ...] = ()
     corrections: tuple[Correction, ...] = ()
     quantity_mention: QuantityMention | None = None
-    brand: str | None = None
+    brand: str | None = None  # display name of the recognised brand
+    brand_key: str | None = None  # its match key: tokens joined ("cocacola")
+    brand_notes: tuple[str, ...] = ()  # each brand decision with its evidence
+    brand_concepts: tuple[str, ...] = ()  # texts of the concepts that name the brand
     category: str | None = None
     quantity: Quantity | None = None
     pack_count: int | None = None

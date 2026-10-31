@@ -18,6 +18,8 @@ DEFAULT_CONFIG_FILE = Path("config/default.toml")
 
 Environment = Literal["dev", "test", "prod"]
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR"]
+SpellingField = Literal["name", "product_type", "brand", "sub_category", "description"]
+ProductField = Literal["name", "product_type", "brand", "sub_category", "description", "category"]
 
 
 class PathsSettings(BaseModel):
@@ -116,12 +118,33 @@ class QuerySettings(BaseModel):
     dominance_min_df: int = Field(default=5, ge=1)
     # A trailing bare integer in [2, bare_count_max] is read as an (ambiguous) count.
     bare_count_max: int = Field(default=50, ge=2)
+    # Product fields whose words are spelling targets (Phase 4b: descriptions and
+    # sub-categories excluded, so words that only occur in marketing text are never targets).
+    spelling_fields: tuple[SpellingField, ...] = Field(
+        default=("name", "brand", "product_type"), min_length=1
+    )
+    # A one-word brand is recognised only if at least this share of the products containing
+    # the word (in name, brand, product type) carry that brand ("real" vs brand "Real").
+    brand_min_share: float = Field(default=0.5, gt=0, le=1)
 
     @model_validator(mode="after")
     def _check_lengths(self) -> Self:
         if self.two_edit_min_length <= self.one_edit_min_length:
             raise ValueError("two_edit_min_length must exceed one_edit_min_length")
         return self
+
+
+class RankingSettings(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    # Constraint-first ordering (stage s6) reorders this many store-eligible BM25F
+    # candidates before cutting to the result limit.
+    candidate_depth: int = Field(default=100, ge=1)
+    # Product fields that decide whether a product contains a query concept (exactness).
+    # Shelf text and descriptions still feed BM25F retrieval, but not exact matching.
+    coverage_fields: tuple[ProductField, ...] = Field(
+        default=("name", "brand", "product_type"), min_length=1
+    )
 
 
 class EvaluationSettings(BaseModel):
@@ -156,6 +179,7 @@ class Settings(BaseSettings):
     simulation: SimulationSettings = SimulationSettings()
     retrieval: RetrievalSettings = RetrievalSettings()
     query: QuerySettings = QuerySettings()
+    ranking: RankingSettings = RankingSettings()
     evaluation: EvaluationSettings = EvaluationSettings()
 
     @classmethod
