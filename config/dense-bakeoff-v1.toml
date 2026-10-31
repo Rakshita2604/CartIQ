@@ -1,0 +1,43 @@
+# Phase 5A dense-retrieval bake-off, version dense-bakeoff-v1. FROZEN before any run:
+# change it only by adding a new version. Its SHA-256 is recorded in every bake-off report.
+#
+# Development data only. The 63 development queries were seen during Phases 2-4, so this is
+# model selection on development data, not an independent test. The held-out judgments are
+# not used in Phase 5A (one diagnostic runs after Phase 5B is frozen).
+
+schema_version = 1
+version = "dense-bakeoff-v1"
+
+# Models (src/cartiq/embeddings/models.py: pinned revisions, file hashes, pooling, prefixes).
+models = ["e5-small", "minilm-l12", "bge-small"]
+
+# Every model runs all four combinations, each kept separate:
+query_templates = ["raw-v1", "expanded-v1"]
+product_templates = ["base-v1", "desc-v1"]
+
+judgments = "eval/judgments/synthetic-v1.toml"
+catalog = "synthetic-v1"
+
+[metrics]
+k = 10
+recall_at = [10, 20, 100]   # Recall@100 is uninformative on a 140-product catalog; reported only
+hit_min_grade = 2
+
+[complementarity]
+# Compared separately against S0 (plain BM25F, top 100) and S6 (BM25F over understood
+# concepts, top 100 before exact-first ordering).
+reference_depth = 100
+dense_depths = [10, 20]
+misleading_depth = 5        # grade-0 products in dense's top 5 are reported as misleading
+
+[similarity]
+top_ranks = [1, 5]          # raw cosine of the 1st and 5th neighbour
+
+[selection]
+# Pre-registered: Recall@20 (dense alone, dev) first, then NDCG@10; a configuration is
+# eligible only if its query-encoding p95 is at most latency_p95_ms (single-threaded, this
+# machine, a benchmark not a guarantee); remaining ties go to the smaller model.
+primary = "recall@20"
+secondary = "ndcg@10"
+latency_p95_ms = 20.0
+model_size_order = ["bge-small", "e5-small", "minilm-l12"]   # smallest first (33M, 118M, 118M)

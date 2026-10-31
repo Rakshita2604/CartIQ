@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import statistics
+import sys
 import time
 import tracemalloc
 from collections.abc import Callable
@@ -20,6 +21,10 @@ from cartiq.catalog_fingerprint import catalog_fingerprint
 from cartiq.clock import SystemClock
 from cartiq.config import Settings
 from cartiq.domain import Grade, Product
+from cartiq.embeddings.artifact import EmbeddedCatalog, artifact_id, build_embeddings
+from cartiq.embeddings.encoder import OnnxEncoder
+from cartiq.embeddings.models import MODELS, ModelSpec, fetch_model
+from cartiq.embeddings.templates import ProductTemplate, QueryTemplate
 from cartiq.evaluation import (
     JudgmentError,
     check_against_catalog,
@@ -28,7 +33,20 @@ from cartiq.evaluation import (
     load_judgments,
 )
 from cartiq.evaluation.compare import IncomparableReportsError, format_comparison
-from cartiq.evaluation.pipelines import BM25Pipeline, TokenOverlapPipeline, UnderstandingPipeline
+from cartiq.evaluation.dense_eval import (
+    DISCLOSURE,
+    BakeoffReport,
+    combination_result,
+    encoding_latency,
+    load_plan,
+    select,
+)
+from cartiq.evaluation.pipelines import (
+    BM25Pipeline,
+    DensePipeline,
+    TokenOverlapPipeline,
+    UnderstandingPipeline,
+)
 from cartiq.evaluation.qu_eval import evaluate_suite, format_suite_report, load_expectations
 from cartiq.evaluation.runner import EvalReport
 from cartiq.evaluation.tiers import TierQuery, evaluate_tiers, format_tiers_report
@@ -517,3 +535,278 @@ def evaluate_tiers_command(
     path.write_text(report.model_dump_json(indent=2) + "\n")
     typer.echo(format_tiers_report(report))
     typer.echo(f"report: {path}")
+
+
+def _encode_query(encoder: OnnxEncoder, text: str) -> object:
+    return encoder.encode_queries([text])
+
+
+def _max_rss_mib() -> float:
+    import resource
+
+    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    return peak / 2**20 if sys.platform == "darwin" else peak / 2**10  # bytes vs KiB
+
+
+def _models_root(settings: Settings) -> Path:
+    return settings.paths.artifacts_dir / "models"
+
+
+def _libraries() -> dict[str, str]:
+    import onnxruntime
+    import tokenizers
+
+    return {"onnxruntime": onnxruntime.__version__, "tokenizers": tokenizers.__version__}
+
+
+@app.command("fetch-models")
+def fetch_models_command() -> None:
+    """Download the pinned embedding models (if missing) and verify every file's SHA-256."""
+    root = _models_root(Settings())
+    for spec in MODELS.values():
+        directory = fetch_model(spec, root)
+        typer.echo(f"{spec.key}: {spec.repo}@{spec.revision[:12]} verified in {directory}")
+
+
+def _embedded(
+    settings: Settings,
+    products: list[Product],
+    spec: ModelSpec,
+    encoder: OnnxEncoder,
+    template: ProductTemplate,
+) -> EmbeddedCatalog:
+    fingerprint = catalog_fingerprint(products)
+    directory = (
+        settings.paths.artifacts_dir
+        / "embeddings"
+        / artifact_id(spec.key, spec.revision, template, fingerprint)
+    )
+    return build_embeddings(products, encoder, template, directory, SystemClock(), _libraries())
+
+
+@app.command("evaluate-dense")
+def evaluate_dense_command(
+    snapshot_id: str,
+    plan_path: Annotated[Path, typer.Option("--plan")] = Path("config/dense-bakeoff-v1.toml"),
+) -> None:
+    """Run the frozen dense-retrieval bake-off on development judgments (Phase 5A)."""
+    settings = Settings()
+    plan, plan_sha = load_plan(plan_path)
+    manifest, products, in_stock = _load_snapshot(settings, snapshot_id)
+    judgments = load_judgments(Path(plan.judgments))
+    check_against_catalog(
+        judgments,
+        manifest.source.name,
+        catalog_fingerprint(products),
+        {product.product_id for product in products},
+    )
+    queries = list(judgments.queries)
+    s6 = UnderstandingPipeline(
+        products,
+        in_stock,
+        settings.retrieval.bm25,
+        settings.query,
+        "s6",
+        STAGES["s6"],
+        settings.ranking,
+    )
+    s0 = BM25Pipeline(products, in_stock, settings.retrieval.bm25)
+    depth = plan.complementarity.reference_depth
+    references = {
+        "S0": {q.text: list(s0.retrieve(q.text, depth)) for q in queries},
+        "S6": {q.text: list(s6.retrieve(q.text, depth)) for q in queries},
+    }
+    root = _models_root(settings)
+    combinations = []
+    latency = []
+    for key in plan.models:
+        spec = MODELS[key]
+        encoder = OnnxEncoder(spec, root)
+        latency.append(
+            encoding_latency(
+                key,
+                partial(_encode_query, encoder),
+                [q.text for q in queries],
+                plan.selection.latency_p95_ms,
+            )
+        )
+        for product_template in plan.product_templates:
+            embedded = _embedded(
+                settings, products, spec, encoder, ProductTemplate(product_template)
+            )
+            for query_template in plan.query_templates:
+                pipeline = DensePipeline(
+                    embedded,
+                    encoder,
+                    QueryTemplate(query_template),
+                    s6.parse,
+                    in_stock,
+                    model_key=key,
+                    parser_identity=s6.name,
+                )
+                report = evaluate(
+                    pipeline,
+                    judgments,
+                    in_stock,
+                    k=plan.metrics.k,
+                    recall_at=plan.metrics.recall_at,
+                    hit_min_grade=Grade(plan.metrics.hit_min_grade),
+                    snapshot_id=snapshot_id,
+                )
+                out = (
+                    settings.paths.artifacts_dir
+                    / "eval"
+                    / snapshot_id
+                    / f"{report.pipeline}-{judgments.sha256[:12]}.json"
+                )
+                out.parent.mkdir(parents=True, exist_ok=True)
+                out.write_text(report.model_dump_json(indent=2) + "\n")
+                combinations.append(
+                    combination_result(
+                        plan,
+                        pipeline,
+                        report,
+                        queries,
+                        references,
+                        s6.classify,
+                        model=key,
+                        query_template=query_template,
+                        product_template=product_template,
+                        artifact_id=embedded.manifest.artifact_id,
+                    )
+                )
+                typer.echo(
+                    f"  {pipeline.name}: ndcg@10 {report.overall.ndcg:.3f} "
+                    f"r@20 {report.overall.recall[20]:.3f}"
+                )
+    ranking = select(plan, combinations, latency)
+    bakeoff = BakeoffReport(
+        plan_version=plan.version,
+        plan_sha256=plan_sha,
+        snapshot_id=snapshot_id,
+        judgments=plan.judgments,
+        judgments_sha256=judgments.sha256,
+        disclosure=DISCLOSURE,
+        latency=latency,
+        combinations=combinations,
+        ranking=ranking,
+        selected=ranking[0] if ranking else None,
+    )
+    path = (
+        settings.paths.artifacts_dir
+        / "eval-dense"
+        / snapshot_id
+        / f"{plan.version}-{plan_sha[:12]}.json"
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(bakeoff.model_dump_json(indent=2) + "\n")
+    typer.echo(f"selected: {bakeoff.selected}")
+    typer.echo(f"report: {path}")
+
+
+@app.command("diagnose-dense")
+def diagnose_dense_command(
+    snapshot_id: str,
+    model: Annotated[str, typer.Option(help="Model key.")],
+    query_template: Annotated[str, typer.Option(help="raw-v1 or expanded-v1.")],
+    product_template: Annotated[str, typer.Option(help="base-v1 or desc-v1.")],
+    repeat: Annotated[int, typer.Option(min=1)] = 3,
+) -> None:
+    """Label-free dense diagnostic and benchmark on a snapshot, using development query
+    texts: top results, overlap with S0/S6 candidates, similarity, latency and memory."""
+    settings = Settings()
+    _, products, in_stock = _load_snapshot(settings, snapshot_id)
+    texts = [q.text for q in load_judgments(settings.evaluation.judgments_file).queries]
+    spec = MODELS[model]
+    before = _max_rss_mib()
+    started = time.perf_counter()
+    encoder = OnnxEncoder(spec, _models_root(settings))
+    load_ms = (time.perf_counter() - started) * 1000
+    after_model = _max_rss_mib()
+    started = time.perf_counter()
+    embedded = _embedded(settings, products, spec, encoder, ProductTemplate(product_template))
+    embed_s = time.perf_counter() - started
+    s6 = UnderstandingPipeline(
+        products,
+        in_stock,
+        settings.retrieval.bm25,
+        settings.query,
+        "s6",
+        STAGES["s6"],
+        settings.ranking,
+    )
+    s0 = BM25Pipeline(products, in_stock, settings.retrieval.bm25)
+    pipeline = DensePipeline(
+        embedded,
+        encoder,
+        QueryTemplate(query_template),
+        s6.parse,
+        in_stock,
+        model_key=model,
+        parser_identity=s6.name,
+    )
+    names = {p.product_id: p.name for p in products}
+    encode_ms = []
+    for _ in range(repeat):
+        for text in texts:
+            started = time.perf_counter()
+            encoder.encode_queries([pipeline.query_text(text)])
+            encode_ms.append((time.perf_counter() - started) * 1000)
+    catalog_ms: list[float] = []
+    store_ms: list[float] = []
+    for _ in range(repeat):
+        for text in texts:
+            pipeline.vector(text)  # encoded once; every search below reuses it
+            started = time.perf_counter()
+            pipeline.hits(text, 100)
+            catalog_ms.append((time.perf_counter() - started) * 1000)
+            for stocked in in_stock.values():
+                started = time.perf_counter()
+                pipeline.hits(text, 10, stocked)
+                store_ms.append((time.perf_counter() - started) * 1000)
+
+    def p(samples: list[float]) -> str:
+        return (
+            f"p50={statistics.median(samples):.3f} ms "
+            f"p95={statistics.quantiles(samples, n=100, method='inclusive')[94]:.3f} ms"
+        )
+
+    typer.echo(
+        f"{embedded.manifest.artifact_id}: {len(products)} products, "
+        f"vectors {embedded.vectors.nbytes / 2**20:.1f} MiB, "
+        f"sha256 {embedded.manifest.vectors_sha256[:12]}"
+    )
+    typer.echo(
+        f"model load {load_ms:.0f} ms (max RSS +{after_model - before:.0f} MiB); "
+        f"catalog embedding {embed_s:.1f} s (near 0 if reused); "
+        f"max RSS now {_max_rss_mib():.0f} MiB"
+    )
+    typer.echo(f"query encoding (n={len(encode_ms)}): {p(encode_ms)}")
+    typer.echo(f"dense search, catalog depth 100 (n={len(catalog_ms)}): {p(catalog_ms)}")
+    typer.echo(
+        f"dense search, per store limit 10, vector reused (n={len(store_ms)}): {p(store_ms)}"
+    )
+    overlaps: dict[str, list[float]] = {"S0": [], "S6": []}
+    top1 = []
+    for text in texts:
+        dense100 = [h.product_id for h in pipeline.hits(text, 100)]
+        top1.append(pipeline.hits(text, 1)[0].score)
+        for label, ref in (("S0", s0.retrieve(text, 100)), ("S6", s6.retrieve(text, 100))):
+            overlaps[label].append(len(set(dense100) & set(ref)) / len(dense100))
+    typer.echo(
+        "share of dense top-100 also in BM25F top-100: "
+        + ", ".join(
+            f"{k} mean {statistics.fmean(v):.3f} min {min(v):.2f}" for k, v in overlaps.items()
+        )
+    )
+    typer.echo(
+        f"top-1 cosine over dev texts: min {min(top1):.3f} "
+        f"median {statistics.median(top1):.3f} max {max(top1):.3f}"
+    )
+    for text in texts:
+        typer.echo(
+            f"  {text!r}: "
+            + " | ".join(
+                f"{names[h.product_id][:34]} ({h.score:.3f})" for h in pipeline.hits(text, 5)
+            )
+        )

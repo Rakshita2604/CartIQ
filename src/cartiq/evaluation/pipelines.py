@@ -4,17 +4,24 @@ results are the in-stock matches."""
 
 import hashlib
 import json
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
+
+import numpy as np
+import numpy.typing as npt
 
 from cartiq.config import BM25Settings, QuerySettings, RankingSettings
 from cartiq.domain import Candidate, MatchTier, ParsedQuery, Product, ScoredProduct
+from cartiq.embeddings.artifact import EmbeddedCatalog
+from cartiq.embeddings.encoder import TextEncoder
+from cartiq.embeddings.templates import QueryTemplate, query_text
 from cartiq.evaluation.runner import StagedResults
 from cartiq.parsing.text import tokenize
 from cartiq.query import Stages
 from cartiq.query.factory import build_parser, parser_identity
 from cartiq.ranking import CoverageIndex, order
 from cartiq.retrieval import BM25FIndex, bm25_config_id
+from cartiq.retrieval.dense import SORT_DECIMALS, DenseHit, DenseIndex
 
 
 class TokenOverlapPipeline:
@@ -197,6 +204,12 @@ class UnderstandingPipeline:
             return 0
         return sum(s.tier is MatchTier.EXACT for s in self._order(parsed, beyond))
 
+    def classify(self, query: str, product_ids: Sequence[str]) -> dict[str, ScoredProduct]:
+        """S6's tier for each given product, however it was retrieved (evaluation only).
+        The tier depends on the query and the product alone, never on a retrieval score."""
+        candidates = [Candidate(product_id=pid, fused_score=0.0) for pid in product_ids]
+        return {s.product_id: s for s in self._order(self.parse(query), candidates)}
+
     def _order(self, parsed: ParsedQuery, candidates: Sequence[Candidate]) -> list[ScoredProduct]:
         if self._coverage is None:
             raise RuntimeError("constraint ordering needs the ordering stage (s6)")
@@ -204,3 +217,70 @@ class UnderstandingPipeline:
         coverage = self._coverage.covered(parsed.concepts, ids)
         required = self._coverage.coverable(parsed.concepts) - set(parsed.brand_concepts)
         return order(candidates, self._products, parsed, coverage, required)
+
+
+class DensePipeline:
+    """Dense retrieval on its own (Phase 5A): no BM25F, no query-understanding ordering.
+
+    Each query text is encoded once (with its query template) and the vector reused for
+    every store's search. ``available`` and ``final`` are the store's eligible nearest
+    neighbours (v1 semantics: dense retrieval always returns neighbours when the store has
+    stock).
+    """
+
+    def __init__(
+        self,
+        embedded: EmbeddedCatalog,
+        encoder: TextEncoder,
+        query_template: QueryTemplate,
+        parse: Callable[[str], ParsedQuery],
+        in_stock: Mapping[str, frozenset[str]],
+        *,
+        model_key: str,
+        parser_identity: str,
+    ) -> None:
+        self._index = DenseIndex(embedded.product_ids, embedded.vectors)
+        self._encoder = encoder
+        self._template = query_template
+        self._parse = parse
+        self._in_stock = in_stock
+        self._vectors: dict[str, npt.NDArray[np.float32]] = {}
+        self.encoder_identity = encoder.identity
+        self.catalog_sha256 = embedded.manifest.catalog_sha256
+        self.vectors_sha256 = embedded.manifest.vectors_sha256
+        identity = {
+            "encoder": encoder.identity,
+            "query_template": query_template.value,
+            "product_template": embedded.manifest.product_template.value,
+            "vectors": embedded.manifest.vectors_sha256,
+            "sort_decimals": SORT_DECIMALS,
+        }
+        if query_template is QueryTemplate.EXPANDED:
+            identity["parser"] = parser_identity
+        digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:12]
+        self.name = (
+            f"dense-{model_key}-{query_template.value}-"
+            f"{embedded.manifest.product_template.value}-{digest}"
+        )
+
+    def query_text(self, query: str) -> str:
+        return query_text(query, self._parse, self._template)
+
+    def vector(self, query: str) -> npt.NDArray[np.float32]:
+        """The query's vector, encoded once and then reused."""
+        if query not in self._vectors:
+            self._vectors[query] = self._encoder.encode_queries([self.query_text(query)])[0]
+        return self._vectors[query]
+
+    def hits(
+        self, query: str, depth: int, allowed: Collection[str] | None = None
+    ) -> list[DenseHit]:
+        return self._index.search(self.vector(query), depth, allowed)
+
+    def retrieve(self, query: str, depth: int) -> Sequence[str]:
+        return [hit.product_id for hit in self.hits(query, depth)]
+
+    def search(self, query: str, store_id: str, limit: int) -> StagedResults:
+        allowed = self._in_stock.get(store_id, frozenset())
+        found = [hit.product_id for hit in self.hits(query, limit, allowed)]
+        return StagedResults(available=found, final=found)

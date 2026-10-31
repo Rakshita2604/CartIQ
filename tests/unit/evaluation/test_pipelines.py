@@ -1,4 +1,5 @@
 from collections.abc import Collection, Iterable
+from pathlib import Path
 
 import pytest
 
@@ -346,3 +347,142 @@ class TestFinalAudit:
         assert len(changed) == 5
         # Ranking settings only exist for s6: earlier stages keep their identities.
         assert name("s5", ranking=RankingSettings(candidate_depth=50)) == "qu-s5-969762a328bb"
+
+
+class TestDensePipeline:
+    def build(self, products: tuple[Product, ...], encoder, tmp_path, template="raw-v1"):  # type: ignore[no-untyped-def]
+
+        from datetime import UTC, datetime
+
+        from cartiq.clock import FixedClock
+        from cartiq.config import QuerySettings
+        from cartiq.embeddings.artifact import build_embeddings
+        from cartiq.embeddings.templates import ProductTemplate, QueryTemplate
+        from cartiq.evaluation.pipelines import DensePipeline
+        from cartiq.query import STAGES
+        from cartiq.query.factory import build_parser
+
+        embedded = build_embeddings(
+            products,
+            encoder,
+            ProductTemplate.BASE,
+            tmp_path / "emb",
+            FixedClock(datetime(2026, 1, 1, 9, 0, tzinfo=UTC)),
+            {},
+        )
+        index = BM25FIndex.build(products, BM25Settings())
+        parse = build_parser(list(products), index.vocabulary, QuerySettings(), STAGES["s6"]).parse
+        return DensePipeline(
+            embedded,
+            encoder,
+            QueryTemplate(template),
+            parse,
+            IN_STOCK,
+            model_key="hashing",
+            parser_identity="qu-s6-test",
+        )
+
+    def test_query_is_encoded_once_and_reused_across_stores(
+        self, synthetic_products: tuple[Product, ...], tmp_path: Path
+    ) -> None:
+        from cartiq.embeddings.encoder import HashingEncoder
+
+        calls = []
+
+        class Counting(HashingEncoder):
+            def encode_queries(self, texts):  # type: ignore[no-untyped-def]
+                calls.append(list(texts))
+                return super().encode_queries(texts)
+
+        pipe = self.build(synthetic_products, Counting(), tmp_path)
+        pipe.retrieve("amul milk", 100)
+        for store in IN_STOCK:
+            pipe.search("amul milk", store, 10)
+
+        assert calls == [["amul milk"]]
+
+    def test_store_search_is_eligible_only(
+        self, synthetic_products: tuple[Product, ...], tmp_path: Path
+    ) -> None:
+        from cartiq.embeddings.encoder import HashingEncoder
+
+        pipe = self.build(synthetic_products, HashingEncoder(), tmp_path)
+
+        assert set(pipe.search("amul milk", "S1", 10).final) <= IN_STOCK["S1"]
+        assert list(pipe.search("amul milk", "S2", 10).final) == []
+
+    def test_name_identifies_each_combination(
+        self, synthetic_products: tuple[Product, ...], tmp_path: Path
+    ) -> None:
+        from cartiq.embeddings.encoder import HashingEncoder
+
+        raw = self.build(synthetic_products, HashingEncoder(), tmp_path, "raw-v1")
+        expanded = self.build(synthetic_products, HashingEncoder(), tmp_path, "expanded-v1")
+
+        assert raw.name.startswith("dense-hashing-raw-v1-base-v1-")
+        assert expanded.name.startswith("dense-hashing-expanded-v1-base-v1-")
+        assert raw.name != expanded.name
+
+
+class TestDenseCandidatesUnderS6Constraints:
+    """A dense candidate gets S6's tier from the query and the product alone: being
+    retrieved semantically never makes it EXACT (Phase 5A safety for 5B)."""
+
+    @pytest.fixture
+    def s6(self, synthetic_products: tuple[Product, ...]) -> UnderstandingPipeline:
+        from cartiq.config import QuerySettings, RankingSettings
+        from cartiq.query import STAGES
+
+        return UnderstandingPipeline(
+            synthetic_products,
+            IN_STOCK,
+            BM25Settings(),
+            QuerySettings(),
+            "s6",
+            STAGES["s6"],
+            RankingSettings(),
+        )
+
+    @pytest.mark.parametrize(
+        ("query", "product", "violated"),
+        [
+            ("coca cola", "syn-0091", {"brand"}),  # Thums Up: another brand
+            ("amul milk 1 litre", "syn-0006", {"brand"}),  # Mother Dairy 1 l
+            ("amul milk 1 litre", "syn-0001", {"quantity"}),  # Amul 500 ml
+            ("coke 6 x 300 ml", "syn-0089", {"quantity"}),  # single 750 ml bottle
+            ("amul ghee", "syn-0001", {"product"}),  # Amul milk is not ghee
+            ("amul milk 1 litre", "syn-0002", set()),  # satisfies everything: EXACT
+            ("coke 6 x 300 ml", "syn-0090", set()),
+        ],
+    )
+    def test_constraints_decide_the_tier(
+        self, s6: UnderstandingPipeline, query: str, product: str, violated: set[str]
+    ) -> None:
+        from cartiq.domain import MatchTier
+
+        scored = s6.classify(query, [product])[product]
+
+        assert {c.value for c in scored.relaxed} == violated
+        assert scored.tier is (MatchTier.RELAXED if violated else MatchTier.EXACT)
+
+    def test_tier_matches_s6_ordering_whatever_the_source(self, s6: UnderstandingPipeline) -> None:
+        from cartiq.evaluation import load_judgments
+
+        queries = [q.text for q in load_judgments(Path("eval/judgments/synthetic-v1.toml")).queries]
+
+        for query in queries:
+            ordered = s6.ordered(query).scored
+            classified = s6.classify(query, [s.product_id for s in reversed(ordered)])
+            for s in ordered:
+                assert (classified[s.product_id].tier, classified[s.product_id].relaxed) == (
+                    s.tier,
+                    s.relaxed,
+                ), (query, s.product_id)
+
+    def test_classify_leaves_s6_identity_and_results_unchanged(
+        self, s6: UnderstandingPipeline
+    ) -> None:
+        before = (s6.name, s6.search("amul milk 1 litre", "S1", 10))
+        s6.classify("amul milk 1 litre", ["syn-0091", "syn-0005"])
+
+        assert (s6.name, s6.search("amul milk 1 litre", "S1", 10)) == before

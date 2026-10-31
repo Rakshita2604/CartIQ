@@ -144,6 +144,42 @@ still be shown, which *final* counts. Earlier stages use v1 (no in-stock match).
   there usually have no EXACT result and fall back to RELAXED ones.
 - **Totals.** A size is compared per unit, never as a pack total (6 x 200 ml is not 1.2 l).
 
+## Dense retrieval (Phase 5A)
+
+A separate dense retriever, evaluated on its own; S0-S6 and BM25F are unchanged and dense
+results are not yet combined with them (Phase 5B). Models run locally through ONNX Runtime
+and `tokenizers` (no PyTorch dependency, no network on the search path).
+
+```bash
+uv run cartiq fetch-models                                   # ~1 GB into artifacts/models/, hash-verified
+uv run cartiq evaluate-dense <snapshot-id>                   # frozen bake-off: config/dense-bakeoff-v1.toml
+uv run cartiq diagnose-dense <snapshot-id> --model bge-small # label-free: latency, memory, overlap
+```
+
+- **Models** (`embeddings/models.py`): multilingual-e5-small, paraphrase-multilingual-MiniLM-L12-v2
+  and bge-small-en-v1.5, each pinned to a revision with SHA-256 for every file, and with its own
+  prefixes, pooling (mean, mean, CLS) and maximum length (512, 128, 512 tokens). Vectors are
+  L2-normalised; similarity is exact cosine. Every model was checked against its reference
+  Sentence Transformers implementation for queries and documents (minimum cosine
+  0.99999988, maximum |difference| 4.3e-7); PyTorch was used only in a temporary environment.
+- **Templates**: products `base-v1` ("brand name. product type.") or `desc-v1` (plus the first
+  32 description words); queries `raw-v1` (normalised text) or `expanded-v1` (plus lexicon,
+  spelling and brand terms from query understanding).
+- **Artifacts**: `artifacts/embeddings/<model>-<revision>-<template>-<catalog>/` with a manifest
+  recording the encoder identity, catalog fingerprint and vectors hash; loading refuses a
+  different catalog or altered vectors. Rebuilds are byte-identical.
+- **Search**: store eligibility is applied before the top-k cut; ties (scores rounded to 6
+  decimals for sorting only) go to the lower product id; the query is encoded once and reused
+  for every store.
+
+Bake-off result (development data, which was seen during Phases 2-4, so this is model
+selection, not an independent test): by the pre-registered rule the selected configuration is
+**bge-small, expanded-v1 queries, base-v1 products** (Recall@20 0.982, NDCG@10 0.936; S6 is
+0.978 NDCG@10). Dense alone does not beat S6, and its strength on Hinglish comes from the
+expanded query: with raw queries every model scores 0.06-0.12 NDCG@10 there. Over S6's top 100
+it adds no grade-3 product; its few grade-2 additions are other brands (Thums Up for "coca
+cola"), which belong with substitutes, not exact results.
+
 ## Configuration
 
 Settings load from `config/default.toml`, then `CARTIQ_*` environment variables override them
@@ -162,7 +198,8 @@ src/cartiq/
   simulation/      seeded stores, inventory, users and orders
   storage/         repository interfaces; in-memory and SQLite implementations
   query/           query understanding; frozen lexicon and brand aliases in query/lexicon/
-  retrieval/       BM25F index over product fields (in memory), concept-aware scoring
+  embeddings/      pinned embedding models, ONNX encoder, text templates, embedding artifacts
+  retrieval/       BM25F index over product fields (in memory), concept-aware scoring; dense index
   ranking/         constraint evaluation and exact-first ordering (stage s6)
   evaluation/      judgments, metrics, runner, pipelines (baseline, BM25), report comparison
   snapshots.py     build and verify content-addressed snapshots
